@@ -90,7 +90,7 @@ function sendToStockfish(command) {
 // Evaluate position endpoint
 app.post('/api/evaluate', async (req, res) => {
   try {
-    const { fen, depth = 15 } = req.body;
+    const { fen, depth = 15, moves: requestedMoves } = req.body;
 
     if (!fen) {
       return res.status(400).json({ error: 'FEN position is required' });
@@ -100,122 +100,201 @@ app.post('/api/evaluate', async (req, res) => {
       return res.status(503).json({ error: 'Stockfish is not ready' });
     }
 
-    // Set position and analyze
-    await sendToStockfish(`position fen ${fen}`);
+    // If specific moves are provided, evaluate each one individually
+    if (requestedMoves && Array.isArray(requestedMoves) && requestedMoves.length > 0) {
+      const evaluations = [];
 
-    // Go command with depth and multipv for top moves
-    const analysisPromise = new Promise((resolve) => {
-      let buffer = '';
-      const dataHandler = (data) => {
-        buffer += data.toString();
-        if (buffer.includes('bestmove')) {
+      for (const moveNotation of requestedMoves) {
+        try {
+          const tempGame = new Chess(fen);
+          const move = tempGame.move(moveNotation);
+          if (!move) {
+            evaluations.push({ move: moveNotation, evaluation: 0 });
+            continue;
+          }
+
+          const newFen = tempGame.fen();
+
+          // Evaluate the resulting position
+          await sendToStockfish(`position fen ${newFen}`);
+
+          const evalPromise = new Promise((resolve) => {
+            let buffer = '';
+            const dataHandler = (data) => {
+              buffer += data.toString();
+              if (buffer.includes('bestmove')) {
+                stockfish.stdout.removeListener('data', dataHandler);
+                resolve(buffer);
+              }
+            };
+
+            stockfish.stdout.on('data', dataHandler);
+            stockfish.stdin.write(`go depth ${depth} movetime 1000\n`);
+
+            setTimeout(() => {
+              stockfish.stdout.removeListener('data', dataHandler);
+              resolve(buffer);
+            }, 5000);
+          });
+
+          const evalOutput = await evalPromise;
+          const lines = evalOutput.split('\n');
+          
+          // Find the best evaluation from the analysis
+          let bestEval = 0;
+          let isMate = false;
+          
+          for (let i = lines.length - 1; i >= 0; i--) {
+            if (lines[i].includes('info')) {
+              // Check for mate score
+              const mateMatch = lines[i].match(/mate (-?\d+)/);
+              if (mateMatch) {
+                const mateIn = parseInt(mateMatch[1]);
+                // Assign a very high score for mate (positive means winning, negative means losing)
+                bestEval = mateIn > 0 ? 999 : -999;
+                isMate = true;
+                break;
+              }
+              // Check for centipawn score
+              const cpMatch = lines[i].match(/cp (-?\d+)/);
+              if (cpMatch && !isMate) {
+                bestEval = parseInt(cpMatch[1]) / 100;
+              }
+            }
+          }
+
+          // Stockfish evaluations are always from White's perspective
+          // Positive = White is winning, Negative = Black is winning
+          // Keep as-is, don't negate
+          evaluations.push({ move: moveNotation, evaluation: bestEval });
+        } catch (error) {
+          console.error(`Error evaluating move ${moveNotation}:`, error);
+          evaluations.push({ move: moveNotation, evaluation: 0 });
+        }
+      }
+
+      res.json({
+        fen,
+        topMoves: evaluations.map((e, idx) => ({
+          rank: idx + 1,
+          move: e.move,
+          evaluation: e.evaluation
+        }))
+      });
+    } else {
+      // Original multipv analysis for top 5 moves
+      // Set position and analyze
+      await sendToStockfish(`position fen ${fen}`);
+
+      // Go command with depth and multipv for top moves
+      const analysisPromise = new Promise((resolve) => {
+        let buffer = '';
+        const dataHandler = (data) => {
+          buffer += data.toString();
+          if (buffer.includes('bestmove')) {
+            stockfish.stdout.removeListener('data', dataHandler);
+            resolve(buffer);
+          }
+        };
+
+        stockfish.stdout.on('data', dataHandler);
+        stockfish.stdin.write(`go depth ${depth} multipv 5 movetime 2000\n`);
+
+        setTimeout(() => {
           stockfish.stdout.removeListener('data', dataHandler);
           resolve(buffer);
-        }
-      };
+        }, 10000);
+      });
 
-      stockfish.stdout.on('data', dataHandler);
-      stockfish.stdin.write(`go depth ${depth} multipv 5 movetime 2000\n`);
+      const analysis = await analysisPromise;
 
-      setTimeout(() => {
-        stockfish.stdout.removeListener('data', dataHandler);
-        resolve(buffer);
-      }, 10000);
-    });
+      // Parse the last "info" line to get evaluation
+      const lines = analysis.split('\n');
+      let evaluation = null;
+      let bestMove = null;
+      const topMoves = [];
 
-    const analysis = await analysisPromise;
+      // Parse all info lines to collect top 5 moves
+      const infoLines = lines.filter(line => line.includes('info') && line.includes('multipv'));
+      const mvMap = new Map();
 
-    // Parse the last "info" line to get evaluation
-    const lines = analysis.split('\n');
-    let evaluation = null;
-    let bestMove = null;
-    const topMoves = [];
-
-    // Parse all info lines to collect top 5 moves
-    const infoLines = lines.filter(line => line.includes('info') && line.includes('multipv'));
-    const mvMap = new Map();
-
-    for (const line of infoLines) {
-      const mvMatch = line.match(/multipv (\d+)/);
-      const cpMatch = line.match(/cp (-?\d+)/);
-      const depthMatch = line.match(/depth (\d+)/);
-      
-      if (mvMatch && cpMatch) {
-        const mvNum = parseInt(mvMatch[1]);
-        const eval_score = parseInt(cpMatch[1]) / 100;
-        const depth = depthMatch ? parseInt(depthMatch[1]) : 0;
+      for (const line of infoLines) {
+        const mvMatch = line.match(/multipv (\d+)/);
+        const cpMatch = line.match(/cp (-?\d+)/);
+        const depthMatch = line.match(/depth (\d+)/);
         
-        // Extract move from pv section - find everything after "pv "
-        const pvMatch = line.match(/\bpv\s+(\S+)/);
-        const uciMove = pvMatch ? pvMatch[1] : '';
-        
-        // Convert UCI move to SAN notation
-        let sanMove = uciMove;
-        if (uciMove) {
-          try {
-            const tempGame = new Chess(fen);
-            const move = tempGame.move({
-              from: uciMove.substring(0, 2),
-              to: uciMove.substring(2, 4),
-              promotion: uciMove.length > 4 ? uciMove[4] : undefined
-            });
-            if (move) {
-              sanMove = move.san;
+        if (mvMatch && cpMatch) {
+          const mvNum = parseInt(mvMatch[1]);
+          const eval_score = parseInt(cpMatch[1]) / 100;
+          const depth = depthMatch ? parseInt(depthMatch[1]) : 0;
+          
+          // Extract move from pv section - find everything after "pv "
+          const pvMatch = line.match(/\bpv\s+(\S+)/);
+          const uciMove = pvMatch ? pvMatch[1] : '';
+          
+          // Convert UCI move to SAN notation
+          let sanMove = uciMove;
+          if (uciMove) {
+            try {
+              const tempGame = new Chess(fen);
+              const move = tempGame.move({
+                from: uciMove.substring(0, 2),
+                to: uciMove.substring(2, 4),
+                promotion: uciMove.length > 4 ? uciMove[4] : undefined
+              });
+              if (move) {
+                sanMove = move.san;
+              }
+            } catch (e) {
+              console.error(`Failed to convert UCI move ${uciMove} to SAN:`, e);
             }
-          } catch (e) {
-            console.error(`Failed to convert UCI move ${uciMove} to SAN:`, e);
+          }
+          
+          if (sanMove && (!mvMap.has(mvNum) || mvMap.get(mvNum).depth < depth)) {
+            mvMap.set(mvNum, { 
+              evaluation: eval_score, 
+              move: sanMove, 
+              depth: depth 
+            });
           }
         }
-        
-        if (sanMove && (!mvMap.has(mvNum) || mvMap.get(mvNum).depth < depth)) {
-          mvMap.set(mvNum, { 
-            evaluation: eval_score, 
-            move: sanMove, 
-            depth: depth 
+      }
+
+      // Convert map to sorted array
+      for (let i = 1; i <= 5; i++) {
+        if (mvMap.has(i)) {
+          const moveData = mvMap.get(i);
+          topMoves.push({
+            rank: i,
+            move: moveData.move,
+            evaluation: moveData.evaluation
           });
         }
       }
-    }
 
-    // Convert map to sorted array
-    for (let i = 1; i <= 5; i++) {
-      if (mvMap.has(i)) {
-        const moveData = mvMap.get(i);
-        topMoves.push({
-          rank: i,
-          move: moveData.move,
-          evaluation: moveData.evaluation
-        });
+      // Get best move from bestmove line
+      for (let i = lines.length - 1; i >= 0; i--) {
+        if (lines[i].includes('bestmove')) {
+          const parts = lines[i].split(' ');
+          bestMove = parts[1];
+          break;
+        }
       }
-    }
-    
-    console.log('Top moves:', topMoves);
 
-    // Get best move from bestmove line
-    for (let i = lines.length - 1; i >= 0; i--) {
-      if (lines[i].includes('bestmove')) {
-        const parts = lines[i].split(' ');
-        bestMove = parts[1];
-        break;
+      // Get evaluation from best move
+      if (topMoves.length > 0) {
+        evaluation = topMoves[0].evaluation;
       }
+
+      res.json({
+        fen,
+        evaluation,
+        bestMove,
+        topMoves,
+        depth,
+        analysis
+      });
     }
-
-    // Get evaluation from best move
-    if (topMoves.length > 0) {
-      evaluation = topMoves[0].evaluation;
-    }
-
-    console.log('Analysis output sample:', lines.slice(-20).join('\n'));
-    console.log('Filtered infoLines:', infoLines.slice(-5).map(l => l.substring(0, 150)));
-
-    res.json({
-      fen,
-      evaluation,
-      bestMove,
-      topMoves,
-      depth,
-      analysis
-    });
   } catch (error) {
     console.error('Evaluation error:', error);
     res.status(500).json({ error: 'Failed to evaluate position' });

@@ -11,14 +11,17 @@ interface MoveRecord {
   fen: string;
 }
 
-type Difficulty = 'easy' | 'medium' | 'hard' | 'impossible';
+interface PendingMove {
+  san: string;
+  score: number;
+}
 
 function App() {
   const [game, setGame] = useState<Chess>(() => new Chess());
   const [moves, setMoves] = useState<MoveRecord[]>([]);
   const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
   const [isComputerThinking, setIsComputerThinking] = useState(false);
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
 
   // Reconstruct game at current position
   const gameAtPosition = (() => {
@@ -31,7 +34,7 @@ function App() {
     return g;
   })();
 
-  const isDisabled = currentMoveIndex !== moves.length - 1 || isComputerThinking;
+  const isDisabled = currentMoveIndex !== moves.length - 1 || isComputerThinking || pendingMove !== null;
 
   // Computer move after player moves
   useEffect(() => {
@@ -47,7 +50,7 @@ function App() {
     ) {
       makeComputerMove();
     }
-  }, [currentMoveIndex, moves.length, difficulty]);
+  }, [currentMoveIndex, moves.length]);
 
   const makeComputerMove = async () => {
     setIsComputerThinking(true);
@@ -63,53 +66,46 @@ function App() {
       const evaluations = await evaluateMoves(
         gameAtPosition.fen(),
         legalMoves,
-        4
+        10
       );
 
-      // Sort by score (best first)
-      const sortedMoves = legalMoves
-        .map((san, idx) => ({
-          san,
-          score: evaluations[idx]?.score ?? 0,
-        }))
-        .sort((a, b) => b.score - a.score);
+      // Create a map of move notation to score for quick lookup
+      const evalMap = new Map(evaluations.map((evaluation) => [evaluation.move, evaluation]));
 
-      // Select from top N% based on difficulty
-      let percentile: number;
-      switch (difficulty) {
-        case 'impossible':
-          percentile = 1; // Always best move
-          break;
-        case 'hard':
-          percentile = 10;
-          break;
-        case 'medium':
-          percentile = 20;
-          break;
-        case 'easy':
-          percentile = 50;
-          break;
-        default:
-          percentile = 20;
-      }
+      // Sort by score - objective rating where positive is good for White, negative for Black
+      const sortedMoves = evaluations
+        .sort((a, b) => b.score - a.score); // Descending order (highest/best first)
 
-      const topCount = Math.max(1, Math.ceil((sortedMoves.length * percentile) / 100));
-      const topMoves = sortedMoves.slice(0, topCount);
-      const selectedMove = topMoves[Math.floor(Math.random() * topMoves.length)];
+      console.log('Computer ranked moves:', sortedMoves.map(m => ({ move: m.move, eval: m.score })));
 
-      // Make the move
-      const newMoves = moves.slice(0, currentMoveIndex + 1);
-      newMoves.push({
-        san: selectedMove.san,
-        fen: gameAtPosition.fen(),
+      // Always select the best move for Black (highest score)
+      const selectedMove = sortedMoves[0];
+
+      // Show the pending move instead of making it immediately
+      // Convert to PendingMove format (using the move property as san)
+      setPendingMove({
+        san: selectedMove.move,
+        score: selectedMove.score
       });
-      setMoves(newMoves);
-      setCurrentMoveIndex(newMoves.length - 1);
     } catch (error) {
       console.error('Error in computer move:', error);
-    } finally {
       setIsComputerThinking(false);
     }
+  };
+
+  const confirmComputerMove = () => {
+    if (!pendingMove) return;
+
+    // Make the move
+    const newMoves = moves.slice(0, currentMoveIndex + 1);
+    newMoves.push({
+      san: pendingMove.san,
+      fen: gameAtPosition.fen(),
+    });
+    setMoves(newMoves);
+    setCurrentMoveIndex(newMoves.length - 1);
+    setPendingMove(null);
+    setIsComputerThinking(false);
   };
 
   const handleMove = (moveNotation: string) => {
@@ -147,22 +143,24 @@ function App() {
         <button onClick={handleNewGame} className="new-game-btn">
           New Game
         </button>
-        <div className="difficulty-selector">
-          <label htmlFor="difficulty-select">Difficulty:</label>
-          <select
-            id="difficulty-select"
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-            className="difficulty-dropdown"
-          >
-            <option value="easy">Easy (50%)</option>
-            <option value="medium">Medium (20%)</option>
-            <option value="hard">Hard (10%)</option>
-            <option value="impossible">Impossible (1%)</option>
-          </select>
-        </div>
-        {isComputerThinking && <span className="computer-thinking">Computer is thinking...</span>}
+        {isComputerThinking && !pendingMove && <span className="computer-thinking">Computer is thinking...</span>}
       </div>
+      {pendingMove && (
+        <div className="pending-move-prompt">
+          <div className="pending-move-content">
+            <h2>Computer's Move</h2>
+            <p className="pending-move-text">
+              Computer will play: <span className="move-highlight">{pendingMove.san}</span>
+            </p>
+            <p className="pending-move-score">
+              Evaluation: <span className="score-value">{pendingMove.score.toFixed(1)}</span>
+            </p>
+            <button onClick={confirmComputerMove} className="confirm-btn">
+              Proceed
+            </button>
+          </div>
+        </div>
+      )}
       {moves.length > 0 && (
         <PGNNavigator
           game={gameAtPosition}

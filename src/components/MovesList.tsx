@@ -35,17 +35,18 @@ export const MovesList: React.FC<MovesListProps> = ({ game, onMoveClick, isDisab
 
   const evaluateMoves = async (legalMoves: any[]) => {
     try {
-      console.log('Starting evaluation of', legalMoves.length, 'moves');
       const evaluations = await evaluateMovesEngine(
         game.fen(),
         legalMoves.map((m) => m.san),
-        4
+        10
       );
 
       console.log('Evaluations received:', evaluations);
+      console.log('Legal moves count:', legalMoves.length);
 
       // Create a map of move notation to evaluation for quick lookup
       const evalMap = new Map(evaluations.map((evaluation) => [evaluation.move, evaluation]));
+      console.log('EvalMap size:', evalMap.size);
 
       const updatedMoves: MoveEval[] = legalMoves.map((move) => {
         const moveEval = evalMap.get(move.san);
@@ -59,9 +60,12 @@ export const MovesList: React.FC<MovesListProps> = ({ game, onMoveClick, isDisab
         };
       });
 
-      // Sort by score (best moves first for the current player)
+      console.log('Updated moves before sort:', updatedMoves);
+
+      // Sort by score - objective rating where positive is good for White, negative for Black
       updatedMoves.sort((a, b) => b.score - a.score);
 
+      console.log('Ranked moves:', updatedMoves.map(m => ({ move: m.san, eval: m.score })));
       setMoves(updatedMoves);
     } catch (error) {
       console.error('Error evaluating moves:', error);
