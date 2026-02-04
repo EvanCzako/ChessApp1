@@ -18,6 +18,7 @@ interface PendingMove {
 }
 
 type Difficulty = 'impossible' | 'hard' | 'medium' | 'easy';
+type PlayerColor = 'white' | 'black';
 
 function App() {
   const [game, setGame] = useState<Chess>(() => new Chess());
@@ -26,6 +27,7 @@ function App() {
   const [isComputerThinking, setIsComputerThinking] = useState(false);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('impossible');
+  const [playerColor, setPlayerColor] = useState<PlayerColor>('white');
 
   // Reconstruct game at current position
   const gameAtPosition = (() => {
@@ -44,17 +46,18 @@ function App() {
   useEffect(() => {
     // Only make computer move if:
     // 1. We're at the latest move
-    // 2. It's black's turn (computer's turn)
+    // 2. It's the computer's turn
     // 3. We're not already thinking
+    const computerColor = playerColor === 'white' ? 'b' : 'w';
+    
     if (
       currentMoveIndex === moves.length - 1 &&
-      gameAtPosition.turn() === 'b' &&
-      !isComputerThinking &&
-      moves.length > 0
+      gameAtPosition.turn() === computerColor &&
+      !isComputerThinking
     ) {
       makeComputerMove();
     }
-  }, [currentMoveIndex, moves.length]);
+  }, [currentMoveIndex, moves.length, playerColor]);
 
   const makeComputerMove = async () => {
     setIsComputerThinking(true);
@@ -76,11 +79,10 @@ function App() {
       // Create a map of move notation to score for quick lookup
       const evalMap = new Map(evaluations.map((evaluation) => [evaluation.move, evaluation]));
 
-      // Sort by score - objective rating where positive is good for White, negative for Black
-      const sortedMoves = evaluations
-        .sort((a, b) => a.score - b.score); // Ascending order (lowest/worst for White first)
+      // Always sort descending (highest/most positive first)
+      const sortedMoves = evaluations.slice().sort((a, b) => b.score - a.score);
 
-      console.log('Computer ranked moves:', sortedMoves.map(m => ({ move: m.move, eval: m.score })));
+      console.log('Ranked moves (White perspective):', sortedMoves.map(m => ({ move: m.move, eval: m.score })));
 
       // Select move based on difficulty
       let selectedMove;
@@ -93,7 +95,21 @@ function App() {
 
       const percentile = percentages[difficulty];
       const moveCount = Math.max(1, Math.ceil(sortedMoves.length * percentile));
-      const candidateMoves = sortedMoves.slice(0, moveCount);
+      
+      // Determine if computer is White or Black
+      const isComputerWhite = playerColor === 'black';
+
+      // Since evaluations are always from White's perspective:
+      // - White picks from TOP (highest positive scores)
+      // - Black picks from BOTTOM (lowest/most negative scores)
+      let candidateMoves;
+      if (isComputerWhite) {
+        // Computer is White: pick from top
+        candidateMoves = sortedMoves.slice(0, moveCount);
+      } else {
+        // Computer is Black: pick from bottom
+        candidateMoves = sortedMoves.slice(-moveCount);
+      }
       
       // Randomly select from candidate moves
       selectedMove = candidateMoves[Math.floor(Math.random() * candidateMoves.length)];
@@ -102,7 +118,6 @@ function App() {
       const selectedMoveRank = sortedMoves.findIndex(m => m.move === selectedMove.move) + 1;
 
       // Show the pending move instead of making it immediately
-      // Convert to PendingMove format (using the move property as san)
       setPendingMove({
         san: selectedMove.move,
         score: selectedMove.score,
@@ -162,6 +177,16 @@ function App() {
     setDifficulty(newDifficulty);
   };
 
+  const handlePlayerColorChange = (newColor: PlayerColor) => {
+    setPlayerColor(newColor);
+    // Reset game when player color changes
+    setGame(new Chess());
+    setMoves([]);
+    setCurrentMoveIndex(-1);
+    setIsComputerThinking(false);
+    setPendingMove(null);
+  };
+
   return (
     <div className="app">
       <h1>Chess Game</h1>
@@ -169,6 +194,19 @@ function App() {
         <button onClick={handleNewGame} className="new-game-btn">
           New Game
         </button>
+        <div className="color-selector">
+          <label htmlFor="color">Play as:</label>
+          <select 
+            id="color"
+            className="color-dropdown"
+            value={playerColor}
+            onChange={(e) => handlePlayerColorChange(e.target.value as PlayerColor)}
+            disabled={isComputerThinking}
+          >
+            <option value="white">White</option>
+            <option value="black">Black</option>
+          </select>
+        </div>
         <div className="difficulty-selector">
           <label htmlFor="difficulty">Difficulty:</label>
           <select 

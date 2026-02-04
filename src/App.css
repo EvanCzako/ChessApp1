@@ -65,6 +65,18 @@ body {
   font-size: 0.95rem;
 }
 
+.color-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.color-selector label {
+  color: var(--text-light);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
 .difficulty-dropdown {
   padding: 0.5rem 0.75rem;
   font-size: 0.9rem;
@@ -88,6 +100,33 @@ body {
 }
 
 .difficulty-dropdown:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.color-dropdown {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  background-color: #3a3a3a;
+  color: var(--text-light);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.color-dropdown:hover:not(:disabled) {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 8px rgba(100, 181, 246, 0.2);
+}
+
+.color-dropdown:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 12px rgba(100, 181, 246, 0.3);
+}
+
+.color-dropdown:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

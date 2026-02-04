@@ -100,6 +100,9 @@ app.post('/api/evaluate', async (req, res) => {
       return res.status(503).json({ error: 'Stockfish is not ready' });
     }
 
+    // Determine whose turn it is in the current position
+    const isBlackToMove = fen.split(' ')[1] === 'b';
+
     // If specific moves are provided, evaluate each one individually
     if (requestedMoves && Array.isArray(requestedMoves) && requestedMoves.length > 0) {
       const evaluations = [];
@@ -150,7 +153,6 @@ app.post('/api/evaluate', async (req, res) => {
               const mateMatch = lines[i].match(/mate (-?\d+)/);
               if (mateMatch) {
                 const mateIn = parseInt(mateMatch[1]);
-                // Assign a very high score for mate (positive means winning, negative means losing)
                 bestEval = mateIn > 0 ? 999 : -999;
                 isMate = true;
                 break;
@@ -163,10 +165,13 @@ app.post('/api/evaluate', async (req, res) => {
             }
           }
 
-          // Stockfish evaluations are always from White's perspective
-          // Positive = White is winning, Negative = Black is winning
-          // Keep as-is, don't negate
-          evaluations.push({ move: moveNotation, evaluation: bestEval });
+          // Convert evaluation to always be from White's perspective
+          // If it's Black's turn in the resulting position, negate to convert back to White's perspective
+          // If it's White's turn in the resulting position, keep as-is
+          const isBlackToMove_After = newFen.split(' ')[1] === 'b';
+          const evaluation = isBlackToMove_After ? -bestEval : bestEval;
+          
+          evaluations.push({ move: moveNotation, evaluation });
         } catch (error) {
           console.error(`Error evaluating move ${moveNotation}:`, error);
           evaluations.push({ move: moveNotation, evaluation: 0 });
