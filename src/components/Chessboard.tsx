@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Chess } from 'chess.js';
 import '../styles/Chessboard.css';
 
@@ -12,18 +12,22 @@ interface DragState {
   piece: string | null;
 }
 
-export const Chessboard: React.FC = () => {
-  const [game, setGame] = useState<Chess>(() => new Chess());
-  const [dragState, setDragState] = useState<DragState>({ fromSquare: null, piece: null });
-  const [legalMoves, setLegalMoves] = useState<string[]>([]);
+interface ChessboardProps {
+  game: Chess;
+  isDisabled: boolean;
+  onMove: (moveDescription: string) => void;
+}
 
-  useEffect(() => {
-    // Reset game on component mount
-    const newGame = new Chess();
-    setGame(newGame);
-  }, []);
+export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove }) => {
+  const [dragState, setDragState] = React.useState<DragState>({ fromSquare: null, piece: null });
+  const [legalMoves, setLegalMoves] = React.useState<string[]>([]);
 
   const handlePieceDragStart = (e: React.DragEvent<HTMLDivElement>, square: string) => {
+    if (isDisabled) {
+      e.preventDefault();
+      return;
+    }
+
     const piece = game.get(square as any);
     
     if (!piece) {
@@ -68,9 +72,8 @@ export const Chessboard: React.FC = () => {
       });
 
       if (move) {
-        // Move was successful, create new game state to trigger re-render
-        const newGame = new Chess(game.fen());
-        setGame(newGame);
+        // Call parent callback with move notation
+        onMove(move.san);
       }
     } catch {
       // Invalid move, silently fail
@@ -89,10 +92,7 @@ export const Chessboard: React.FC = () => {
   };
 
   const resetGame = () => {
-    const newGame = new Chess();
-    setGame(newGame);
-    setDragState({ fromSquare: null, piece: null });
-    setLegalMoves([]);
+    // This function is no longer needed as reset happens at parent level
   };
 
   const renderBoard = () => {
@@ -135,18 +135,13 @@ export const Chessboard: React.FC = () => {
   };
 
   return (
-    <div className="chessboard-container">
+    <div className={`chessboard-container ${isDisabled ? 'disabled' : ''}`}>
       <div className="board">
         {renderBoard()}
       </div>
-      <div className="controls">
-        <button onClick={resetGame} className="reset-btn">
-          New Game
-        </button>
-        <div className="game-info">
-          <p>Turn: <strong>{game.turn() === 'w' ? 'White' : 'Black'}</strong></p>
-          <p>FEN: <code>{game.fen()}</code></p>
-        </div>
+      <div className="game-info">
+        <p>Turn: <strong>{game.turn() === 'w' ? 'White' : 'Black'}</strong></p>
+        <p>FEN: <code>{game.fen()}</code></p>
       </div>
     </div>
   );

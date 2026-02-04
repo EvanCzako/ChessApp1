@@ -2,8 +2,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
-  padding: 2rem;
+  gap: 1.5rem;
+  padding: 0;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.chessboard-container.disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .board {
@@ -13,9 +20,10 @@
   gap: 0;
   width: 500px;
   height: 500px;
-  border: 3px solid #333;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  border: 4px solid #1a1a1a;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 0 0 1px #444;
   background-color: #8b7355;
+  border-radius: 2px;
 }
 
 .square {
@@ -113,25 +121,28 @@
 
 .game-info {
   text-align: center;
-  font-family: monospace;
-  background-color: #333;
-  color: #fff;
-  padding: 1rem;
-  border-radius: 4px;
-  width: 100%;
+  font-family: 'Monaco', 'Courier New', monospace;
+  background-color: #2a2a2a;
+  color: #f5f5f5;
+  padding: 1rem 1.5rem;
+  border-radius: var(--border-radius);
+  width: 500px;
   box-sizing: border-box;
+  border: 1px solid #444;
 }
 
 .game-info p {
-  margin: 0.25rem 0;
+  margin: 0.35rem 0;
   font-size: 0.9rem;
+  letter-spacing: 0.3px;
 }
 
 .game-info code {
   background-color: #1a1a1a;
-  padding: 0.2rem 0.4rem;
-  border-radius: 2px;
+  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
   word-break: break-all;
-  font-size: 0.75rem;
-  color: #4caf50;
+  font-size: 0.8rem;
+  color: #64b5f6;
+  border: 1px solid #444;
 }

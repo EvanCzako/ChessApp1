@@ -1,0 +1,82 @@
+.moves-list-container {
+  width: 500px;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: var(--border-radius);
+  padding: 1.25rem;
+  transition: opacity 0.2s ease;
+}
+
+.moves-list-container.disabled {
+  opacity: 0.6;
+}
+
+.moves-list-title {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-light);
+  letter-spacing: 0.3px;
+}
+
+.moves-by-piece {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.piece-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.piece-group-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.piece-moves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.move-button {
+  padding: 0.5rem 0.85rem;
+  background-color: #3a3a3a;
+  color: #ccc;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.move-button:hover:not(:disabled) {
+  background-color: #4a4a4a;
+  border-color: #666;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.move-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.move-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.move-button:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 1px;
+}
