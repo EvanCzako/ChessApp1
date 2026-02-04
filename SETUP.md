@@ -54,8 +54,7 @@ The frontend will start on `http://localhost:5173`.
 ### Frontend (React + TypeScript + Vite)
 - `src/components/Chessboard.tsx` - Main board component with drag-and-drop
 - `src/components/PGNNavigator.tsx` - Game history and navigation
-- `src/components/MovesList.tsx` - Available moves with js-chess-engine evaluation
-- `src/utils/stockfishEval.ts` - Move evaluation engine (js-chess-engine)
+- `src/utils/stockfishEval.ts` - Move evaluation engine with console logging
 
 ## Technologies Used
 
@@ -82,5 +81,5 @@ Then open `http://localhost:5173` in your browser.
 
 - The backend must be running for Stockfish evaluation to work
 - If the backend is not running, the app still works but moves show 0.0 score
-- Stockfish evaluation depth can be adjusted in the MovesList component
+- Stockfish evaluation rankings are logged to the browser console
 - All moves are legal - validated by chess.js before display

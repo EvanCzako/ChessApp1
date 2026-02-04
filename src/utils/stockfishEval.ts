@@ -30,6 +30,14 @@ export async function evaluateMoves(
       }
     }
 
+    // Log Stockfish evaluation rankings sorted by score
+    const rankedEvals = evaluations.sort((a, b) => b.score - a.score);
+    console.log('Stockfish Evaluation Rankings:', rankedEvals.map((e, index) => ({
+      rank: index + 1,
+      move: e.move,
+      score: e.score
+    })));
+
     return evaluations;
   } catch (error) {
     console.error('Error evaluating moves:', error);

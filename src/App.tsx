@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Chess } from 'chess.js'
 import { Chessboard } from './components/Chessboard'
 import { PGNNavigator } from './components/PGNNavigator'
-import { MovesList } from './components/MovesList'
 import { evaluateMoves } from './utils/stockfishEval'
 import './App.css'
 
@@ -74,11 +73,11 @@ function App() {
 
       // Sort by score - objective rating where positive is good for White, negative for Black
       const sortedMoves = evaluations
-        .sort((a, b) => b.score - a.score); // Descending order (highest/best first)
+        .sort((a, b) => a.score - b.score); // Ascending order (lowest/worst for White first)
 
       console.log('Computer ranked moves:', sortedMoves.map(m => ({ move: m.move, eval: m.score })));
 
-      // Always select the best move for Black (highest score)
+      // Select the move with minimum score (worst for White, best for Black)
       const selectedMove = sortedMoves[0];
 
       // Show the pending move instead of making it immediately
@@ -172,7 +171,6 @@ function App() {
       )}
       <div className="main-content">
         <Chessboard game={gameAtPosition} isDisabled={isDisabled} onMove={handleMove} />
-        <MovesList game={gameAtPosition} onMoveClick={handleMove} isDisabled={isDisabled} />
       </div>
     </div>
   )
