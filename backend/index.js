@@ -1,0 +1,235 @@
+import express from 'express';
+import cors from 'cors';
+import { spawn } from 'child_process';
+import { Chess } from 'chess.js';
+
+const app = express();
+const PORT = 3001;
+
+app.use(cors());
+app.use(express.json());
+
+let stockfish = null;
+let isReady = false;
+
+// Initialize Stockfish process
+function initStockfish() {
+  if (stockfish) {
+    stockfish.kill();
+  }
+
+  // Spawn Stockfish process - using full path
+  stockfish = spawn('C:\\Code\\stockfish\\stockfish-windows-x86-64-avx2.exe', {
+    stdio: ['pipe', 'pipe', 'pipe']
+  });
+
+  let buffer = '';
+
+  stockfish.stdout.on('data', (data) => {
+    buffer += data.toString();
+  });
+
+  stockfish.stderr.on('data', (data) => {
+    console.error(`Stockfish stderr: ${data}`);
+  });
+
+  stockfish.on('close', (code) => {
+    console.log(`Stockfish process exited with code ${code}`);
+    isReady = false;
+  });
+
+  // Send UCI command and wait for initialization
+  return new Promise((resolve) => {
+    const checkReady = setInterval(() => {
+      if (buffer.includes('uciok')) {
+        clearInterval(checkReady);
+        isReady = true;
+        console.log('Stockfish initialized');
+        // Set MultiPV option
+        stockfish.stdin.write('setoption name MultiPV value 5\n');
+        resolve();
+      }
+    }, 100);
+
+    stockfish.stdin.write('uci\n');
+    stockfish.stdin.write('isready\n');
+
+    setTimeout(() => {
+      clearInterval(checkReady);
+      if (!isReady) {
+        console.warn('Stockfish initialization timeout');
+      }
+      resolve();
+    }, 5000);
+  });
+}
+
+// Send command to Stockfish
+function sendToStockfish(command) {
+  return new Promise((resolve) => {
+    if (!stockfish) {
+      resolve('Error: Stockfish not initialized');
+      return;
+    }
+
+    let resultBuffer = '';
+    const dataHandler = (data) => {
+      resultBuffer += data.toString();
+    };
+
+    stockfish.stdout.once('data', dataHandler);
+    stockfish.stdin.write(command + '\n');
+
+    setTimeout(() => {
+      stockfish.stdout.removeListener('data', dataHandler);
+      resolve(resultBuffer);
+    }, 100);
+  });
+}
+
+// Evaluate position endpoint
+app.post('/api/evaluate', async (req, res) => {
+  try {
+    const { fen, depth = 15 } = req.body;
+
+    if (!fen) {
+      return res.status(400).json({ error: 'FEN position is required' });
+    }
+
+    if (!isReady) {
+      return res.status(503).json({ error: 'Stockfish is not ready' });
+    }
+
+    // Set position and analyze
+    await sendToStockfish(`position fen ${fen}`);
+
+    // Go command with depth and multipv for top moves
+    const analysisPromise = new Promise((resolve) => {
+      let buffer = '';
+      const dataHandler = (data) => {
+        buffer += data.toString();
+        if (buffer.includes('bestmove')) {
+          stockfish.stdout.removeListener('data', dataHandler);
+          resolve(buffer);
+        }
+      };
+
+      stockfish.stdout.on('data', dataHandler);
+      stockfish.stdin.write(`go depth ${depth} multipv 5 movetime 2000\n`);
+
+      setTimeout(() => {
+        stockfish.stdout.removeListener('data', dataHandler);
+        resolve(buffer);
+      }, 10000);
+    });
+
+    const analysis = await analysisPromise;
+
+    // Parse the last "info" line to get evaluation
+    const lines = analysis.split('\n');
+    let evaluation = null;
+    let bestMove = null;
+    const topMoves = [];
+
+    // Parse all info lines to collect top 5 moves
+    const infoLines = lines.filter(line => line.includes('info') && line.includes('multipv'));
+    const mvMap = new Map();
+
+    for (const line of infoLines) {
+      const mvMatch = line.match(/multipv (\d+)/);
+      const cpMatch = line.match(/cp (-?\d+)/);
+      const depthMatch = line.match(/depth (\d+)/);
+      
+      if (mvMatch && cpMatch) {
+        const mvNum = parseInt(mvMatch[1]);
+        const eval_score = parseInt(cpMatch[1]) / 100;
+        const depth = depthMatch ? parseInt(depthMatch[1]) : 0;
+        
+        // Extract move from pv section - find everything after "pv "
+        const pvMatch = line.match(/\bpv\s+(\S+)/);
+        const uciMove = pvMatch ? pvMatch[1] : '';
+        
+        // Convert UCI move to SAN notation
+        let sanMove = uciMove;
+        if (uciMove) {
+          try {
+            const tempGame = new Chess(fen);
+            const move = tempGame.move({
+              from: uciMove.substring(0, 2),
+              to: uciMove.substring(2, 4),
+              promotion: uciMove.length > 4 ? uciMove[4] : undefined
+            });
+            if (move) {
+              sanMove = move.san;
+            }
+          } catch (e) {
+            console.error(`Failed to convert UCI move ${uciMove} to SAN:`, e);
+          }
+        }
+        
+        if (sanMove && (!mvMap.has(mvNum) || mvMap.get(mvNum).depth < depth)) {
+          mvMap.set(mvNum, { 
+            evaluation: eval_score, 
+            move: sanMove, 
+            depth: depth 
+          });
+        }
+      }
+    }
+
+    // Convert map to sorted array
+    for (let i = 1; i <= 5; i++) {
+      if (mvMap.has(i)) {
+        const moveData = mvMap.get(i);
+        topMoves.push({
+          rank: i,
+          move: moveData.move,
+          evaluation: moveData.evaluation
+        });
+      }
+    }
+    
+    console.log('Top moves:', topMoves);
+
+    // Get best move from bestmove line
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (lines[i].includes('bestmove')) {
+        const parts = lines[i].split(' ');
+        bestMove = parts[1];
+        break;
+      }
+    }
+
+    // Get evaluation from best move
+    if (topMoves.length > 0) {
+      evaluation = topMoves[0].evaluation;
+    }
+
+    console.log('Analysis output sample:', lines.slice(-20).join('\n'));
+    console.log('Filtered infoLines:', infoLines.slice(-5).map(l => l.substring(0, 150)));
+
+    res.json({
+      fen,
+      evaluation,
+      bestMove,
+      topMoves,
+      depth,
+      analysis
+    });
+  } catch (error) {
+    console.error('Evaluation error:', error);
+    res.status(500).json({ error: 'Failed to evaluate position' });
+  }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: isReady ? 'ready' : 'initializing' });
+});
+
+// Start server
+app.listen(PORT, async () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log('Initializing Stockfish...');
+  await initStockfish();
+});

@@ -17,37 +17,42 @@
   font-weight: 700;
   color: var(--text-light);
   letter-spacing: 0.3px;
-}
-
-.moves-by-piece {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.piece-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.piece-group-title {
-  margin: 0;
-  font-size: 0.85rem;
-  font-weight: 600;
+.evaluating-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
   color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  background-color: #3a3a3a;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  letter-spacing: 0.2px;
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
-.piece-moves {
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.moves-evaluated {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.5rem;
 }
 
-.move-button {
-  padding: 0.5rem 0.85rem;
+.move-eval-button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 1rem;
   background-color: #3a3a3a;
   color: #ccc;
   border: 1px solid #555;
@@ -58,25 +63,49 @@
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
+  text-align: left;
 }
 
-.move-button:hover:not(:disabled) {
+.move-eval-button:hover:not(:disabled) {
   background-color: #4a4a4a;
   border-color: #666;
   color: #fff;
-  transform: translateY(-1px);
+  transform: translateX(4px);
+  box-shadow: -3px 0 8px rgba(76, 175, 80, 0.2);
 }
 
-.move-button:active:not(:disabled) {
-  transform: translateY(0);
+.move-eval-button:active:not(:disabled) {
+  transform: translateX(2px);
 }
 
-.move-button:disabled {
+.move-eval-button:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.7;
 }
 
-.move-button:focus {
-  outline: 2px solid var(--accent-color);
-  outline-offset: 1px;
+.move-eval-button.mate {
+  border-color: #ffc107;
+  background-color: #3a3a2a;
+}
+
+.move-eval-button.mate:hover:not(:disabled) {
+  border-color: #ffb300;
+  background-color: #4a4a2a;
+  box-shadow: -3px 0 8px rgba(255, 193, 7, 0.2);
+}
+
+.move-notation {
+  font-weight: 600;
+  color: #fff;
+  min-width: 40px;
+}
+
+.move-score {
+  font-weight: 700;
+  color: var(--accent-color);
+  padding: 0.25rem 0.65rem;
+  background-color: rgba(100, 181, 246, 0.15);
+  border-radius: 3px;
+  min-width: 45px;
+  text-align: right;
 }
