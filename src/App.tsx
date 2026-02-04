@@ -115,13 +115,16 @@ function App() {
       selectedMove = candidateMoves[Math.floor(Math.random() * candidateMoves.length)];
 
       // Find the rank of the selected move in the full sorted list
-      const selectedMoveRank = sortedMoves.findIndex(m => m.move === selectedMove.move) + 1;
+      const rankInSortedList = sortedMoves.findIndex(m => m.move === selectedMove.move) + 1;
+      
+      // For display: invert rank for Black (most negative = rank 1, most positive = rank 30)
+      const displayRank = isComputerWhite ? rankInSortedList : sortedMoves.length - rankInSortedList + 1;
 
       // Show the pending move instead of making it immediately
       setPendingMove({
         san: selectedMove.move,
         score: selectedMove.score,
-        rank: selectedMoveRank,
+        rank: displayRank,
         totalMoves: sortedMoves.length
       });
     } catch (error) {
