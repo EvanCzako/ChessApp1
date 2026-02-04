@@ -76,7 +76,7 @@ body {
   transition: all 0.2s ease;
 }
 
-.difficulty-dropdown:hover {
+.difficulty-dropdown:hover:not(:disabled) {
   border-color: var(--accent-color);
   box-shadow: 0 0 8px rgba(100, 181, 246, 0.2);
 }
@@ -85,6 +85,11 @@ body {
   outline: none;
   border-color: var(--accent-color);
   box-shadow: 0 0 12px rgba(100, 181, 246, 0.3);
+}
+
+.difficulty-dropdown:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .computer-thinking {
@@ -197,6 +202,13 @@ body {
   color: var(--accent-color);
   font-weight: 600;
   font-size: 1.1rem;
+}
+
+.pending-move-rank {
+  color: #aaa;
+  font-size: 0.9rem;
+  margin: 0.75rem 0 1.5rem 0;
+  font-style: italic;
 }
 
 .confirm-btn {

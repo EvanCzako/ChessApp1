@@ -13,7 +13,11 @@ interface MoveRecord {
 interface PendingMove {
   san: string;
   score: number;
+  rank: number;
+  totalMoves: number;
 }
+
+type Difficulty = 'impossible' | 'hard' | 'medium' | 'easy';
 
 function App() {
   const [game, setGame] = useState<Chess>(() => new Chess());
@@ -21,6 +25,7 @@ function App() {
   const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
   const [isComputerThinking, setIsComputerThinking] = useState(false);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+  const [difficulty, setDifficulty] = useState<Difficulty>('impossible');
 
   // Reconstruct game at current position
   const gameAtPosition = (() => {
@@ -77,14 +82,32 @@ function App() {
 
       console.log('Computer ranked moves:', sortedMoves.map(m => ({ move: m.move, eval: m.score })));
 
-      // Select the move with minimum score (worst for White, best for Black)
-      const selectedMove = sortedMoves[0];
+      // Select move based on difficulty
+      let selectedMove;
+      const percentages: Record<Difficulty, number> = {
+        impossible: 0,    // Top 1 move (0%)
+        hard: 0.1,        // Top 10%
+        medium: 0.2,      // Top 20%
+        easy: 0.5,        // Top 50%
+      };
+
+      const percentile = percentages[difficulty];
+      const moveCount = Math.max(1, Math.ceil(sortedMoves.length * percentile));
+      const candidateMoves = sortedMoves.slice(0, moveCount);
+      
+      // Randomly select from candidate moves
+      selectedMove = candidateMoves[Math.floor(Math.random() * candidateMoves.length)];
+
+      // Find the rank of the selected move in the full sorted list
+      const selectedMoveRank = sortedMoves.findIndex(m => m.move === selectedMove.move) + 1;
 
       // Show the pending move instead of making it immediately
       // Convert to PendingMove format (using the move property as san)
       setPendingMove({
         san: selectedMove.move,
-        score: selectedMove.score
+        score: selectedMove.score,
+        rank: selectedMoveRank,
+        totalMoves: sortedMoves.length
       });
     } catch (error) {
       console.error('Error in computer move:', error);
@@ -135,6 +158,10 @@ function App() {
     setIsComputerThinking(false);
   };
 
+  const handleDifficultyChange = (newDifficulty: Difficulty) => {
+    setDifficulty(newDifficulty);
+  };
+
   return (
     <div className="app">
       <h1>Chess Game</h1>
@@ -142,6 +169,21 @@ function App() {
         <button onClick={handleNewGame} className="new-game-btn">
           New Game
         </button>
+        <div className="difficulty-selector">
+          <label htmlFor="difficulty">Difficulty:</label>
+          <select 
+            id="difficulty"
+            className="difficulty-dropdown"
+            value={difficulty}
+            onChange={(e) => handleDifficultyChange(e.target.value as Difficulty)}
+            disabled={isComputerThinking}
+          >
+            <option value="impossible">Impossible</option>
+            <option value="hard">Hard</option>
+            <option value="medium">Medium</option>
+            <option value="easy">Easy</option>
+          </select>
+        </div>
         {isComputerThinking && !pendingMove && <span className="computer-thinking">Computer is thinking...</span>}
       </div>
       {pendingMove && (
@@ -153,6 +195,9 @@ function App() {
             </p>
             <p className="pending-move-score">
               Evaluation: <span className="score-value">{pendingMove.score.toFixed(1)}</span>
+            </p>
+            <p className="pending-move-rank">
+              Played {pendingMove.rank === 1 ? '1st' : pendingMove.rank === 2 ? '2nd' : pendingMove.rank === 3 ? '3rd' : `${pendingMove.rank}th`} best move of {pendingMove.totalMoves} possibilities
             </p>
             <button onClick={confirmComputerMove} className="confirm-btn">
               Proceed
