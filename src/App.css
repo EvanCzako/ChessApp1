@@ -21,20 +21,23 @@ body {
 }
 
 #root {
-  min-height: 100vh;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  height: 100%;
+  width: 100%;
 }
 
 .app {
   width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
+  justify-content: flex-start;
+  gap: 2rem;
+  padding: 2rem;
+  box-sizing: border-box;
+  max-width: 1600px;
+  margin: 0 auto;
+  overflow: hidden;
 }
 
 .app h1 {
@@ -43,38 +46,18 @@ body {
   margin: 0;
   color: var(--text-light);
   letter-spacing: -0.5px;
+  flex-shrink: 0;
 }
 
-.controls-top {
+.main-content {
   display: flex;
+  align-items: flex-start;
   justify-content: center;
-  gap: 1rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.difficulty-selector {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.difficulty-selector label {
-  color: var(--text-light);
-  font-weight: 500;
-  font-size: 0.95rem;
-}
-
-.color-selector {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.color-selector label {
-  color: var(--text-light);
-  font-weight: 500;
-  font-size: 0.95rem;
+  gap: 2rem;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .difficulty-dropdown {
@@ -104,49 +87,6 @@ body {
   cursor: not-allowed;
 }
 
-.color-dropdown {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.9rem;
-  background-color: #3a3a3a;
-  color: var(--text-light);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.color-dropdown:hover:not(:disabled) {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 8px rgba(100, 181, 246, 0.2);
-}
-
-.color-dropdown:focus {
-  outline: none;
-  border-color: var(--accent-color);
-  box-shadow: 0 0 12px rgba(100, 181, 246, 0.3);
-}
-
-.color-dropdown:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.computer-thinking {
-  font-size: 0.95rem;
-  color: var(--accent-color);
-  font-weight: 500;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
 .new-game-btn {
   padding: 0.75rem 1.75rem;
   font-size: 1rem;
@@ -169,108 +109,4 @@ body {
 .new-game-btn:active {
   transform: translateY(0);
   box-shadow: 0 1px 4px rgba(76, 175, 80, 0.3);
-}
-
-.main-content {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 2rem;
-  width: 100%;
-}
-.pending-move-prompt {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.pending-move-content {
-  background-color: #2a2a2a;
-  border: 2px solid var(--accent-color);
-  border-radius: 12px;
-  padding: 2rem;
-  text-align: center;
-  box-shadow: 0 8px 32px rgba(100, 181, 246, 0.3);
-  max-width: 400px;
-  animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(-30px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.pending-move-content h2 {
-  color: var(--accent-color);
-  margin: 0 0 1rem 0;
-  font-size: 1.5rem;
-}
-
-.pending-move-text {
-  color: var(--text-light);
-  font-size: 1.1rem;
-  margin: 1rem 0;
-}
-
-.move-highlight {
-  color: var(--secondary-color);
-  font-weight: 700;
-  font-size: 1.4rem;
-}
-
-.pending-move-score {
-  color: #aaa;
-  font-size: 0.95rem;
-  margin: 1rem 0;
-}
-
-.score-value {
-  color: var(--accent-color);
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.pending-move-rank {
-  color: #aaa;
-  font-size: 0.9rem;
-  margin: 0.75rem 0 1.5rem 0;
-  font-style: italic;
-}
-
-.confirm-btn {
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  background-color: var(--secondary-color);
-  color: var(--text-dark);
-  border: none;
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 1.5rem;
-  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
-}
-
-.confirm-btn:hover {
-  background-color: var(--secondary-hover);
-  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
-  transform: translateY(-2px);
-}
-
-.confirm-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 1px 4px rgba(255, 193, 7, 0.3);
 }

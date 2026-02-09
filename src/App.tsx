@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Chess } from 'chess.js'
 import { Chessboard } from './components/Chessboard'
-import { PGNNavigator } from './components/PGNNavigator'
+import { GameInfo } from './components/GameInfo'
 import { evaluateMoves } from './utils/stockfishEval'
 import './App.css'
 
@@ -193,70 +193,23 @@ function App() {
   return (
     <div className="app">
       <h1>Chess Game</h1>
-      <div className="controls-top">
-        <button onClick={handleNewGame} className="new-game-btn">
-          New Game
-        </button>
-        <div className="color-selector">
-          <label htmlFor="color">Play as:</label>
-          <select 
-            id="color"
-            className="color-dropdown"
-            value={playerColor}
-            onChange={(e) => handlePlayerColorChange(e.target.value as PlayerColor)}
-            disabled={isComputerThinking}
-          >
-            <option value="white">White</option>
-            <option value="black">Black</option>
-          </select>
-        </div>
-        <div className="difficulty-selector">
-          <label htmlFor="difficulty">Difficulty:</label>
-          <select 
-            id="difficulty"
-            className="difficulty-dropdown"
-            value={difficulty}
-            onChange={(e) => handleDifficultyChange(e.target.value as Difficulty)}
-            disabled={isComputerThinking}
-          >
-            <option value="impossible">Impossible</option>
-            <option value="hard">Hard</option>
-            <option value="medium">Medium</option>
-            <option value="easy">Easy</option>
-          </select>
-        </div>
-        {isComputerThinking && !pendingMove && <span className="computer-thinking">Computer is thinking...</span>}
-      </div>
-      {pendingMove && (
-        <div className="pending-move-prompt">
-          <div className="pending-move-content">
-            <h2>Computer's Move</h2>
-            <p className="pending-move-text">
-              Computer will play: <span className="move-highlight">{pendingMove.san}</span>
-            </p>
-            <p className="pending-move-score">
-              Evaluation: <span className="score-value">{pendingMove.score.toFixed(1)}</span>
-            </p>
-            <p className="pending-move-rank">
-              Played {pendingMove.rank === 1 ? '1st' : pendingMove.rank === 2 ? '2nd' : pendingMove.rank === 3 ? '3rd' : `${pendingMove.rank}th`} best move of {pendingMove.totalMoves} possibilities
-            </p>
-            <button onClick={confirmComputerMove} className="confirm-btn">
-              Proceed
-            </button>
-          </div>
-        </div>
-      )}
-      {moves.length > 0 && (
-        <PGNNavigator
+      <div className="main-content">
+        <Chessboard game={gameAtPosition} isDisabled={isDisabled} onMove={handleMove} />
+        <GameInfo
           game={gameAtPosition}
           currentMoveIndex={currentMoveIndex}
           moves={moves}
+          difficulty={difficulty}
+          playerColor={playerColor}
+          isComputerThinking={isComputerThinking}
+          pendingMove={pendingMove}
+          onNewGame={handleNewGame}
+          onDifficultyChange={handleDifficultyChange}
+          onPlayerColorChange={handlePlayerColorChange}
           onNavigate={handleNavigate}
           onResetFromHere={handleResetFromHere}
+          onConfirmMove={confirmComputerMove}
         />
-      )}
-      <div className="main-content">
-        <Chessboard game={gameAtPosition} isDisabled={isDisabled} onMove={handleMove} />
       </div>
     </div>
   )

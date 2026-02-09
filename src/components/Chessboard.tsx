@@ -139,10 +139,6 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
       <div className="board">
         {renderBoard()}
       </div>
-      <div className="game-info">
-        <p>Turn: <strong>{game.turn() === 'w' ? 'White' : 'Black'}</strong></p>
-        <p>FEN: <code>{game.fen()}</code></p>
-      </div>
     </div>
   );
 };
