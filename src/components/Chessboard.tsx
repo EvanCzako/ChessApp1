@@ -16,9 +16,10 @@ interface ChessboardProps {
   game: Chess;
   isDisabled: boolean;
   onMove: (moveDescription: string) => void;
+  chessboardSize?: number;
 }
 
-export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove }) => {
+export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove, chessboardSize }) => {
   const [dragState, setDragState] = React.useState<DragState>({ fromSquare: null, piece: null });
   const [legalMoves, setLegalMoves] = React.useState<string[]>([]);
 
@@ -135,7 +136,10 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
   };
 
   return (
-    <div className={`chessboard-container ${isDisabled ? 'disabled' : ''}`}>
+    <div 
+      className={`chessboard-container ${isDisabled ? 'disabled' : ''}`}
+      style={chessboardSize ? { width: chessboardSize, height: chessboardSize } : undefined}
+    >
       <div className="board">
         {renderBoard()}
       </div>

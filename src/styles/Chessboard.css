@@ -7,21 +7,14 @@
   padding: 0;
   opacity: 1;
   transition: opacity 0.2s ease;
-  flex: 1;
-  aspect-ratio: 1 / 1;
   min-width: 0;
   min-height: 0;
 }
 
-/* Landscape orientation: size based on available height */
+/* Landscape orientation: remove gap */
 @media (orientation: landscape) {
   .chessboard-container {
-    flex: 0 0 auto;
-    width: auto;
-    height: 100%;
-    aspect-ratio: 1 / 1;
     gap: 0;
-    max-width: calc(100% - 220px);
   }
 }
 

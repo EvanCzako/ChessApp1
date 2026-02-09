@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Chess } from 'chess.js'
 import { Chessboard } from './components/Chessboard'
 import { GameInfo } from './components/GameInfo'
@@ -28,6 +28,8 @@ function App() {
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('impossible');
   const [playerColor, setPlayerColor] = useState<PlayerColor>('white');
+  const [chessboardSize, setChessboardSize] = useState<number | undefined>();
+  const mainContentRef = useRef<HTMLDivElement>(null);
 
   // Reconstruct game at current position
   const gameAtPosition = (() => {
@@ -58,6 +60,34 @@ function App() {
       makeComputerMove();
     }
   }, [currentMoveIndex, moves.length, playerColor]);
+
+  // Measure main-content and calculate chessboard size
+  useEffect(() => {
+    if (!mainContentRef.current) return;
+
+    const observer = new ResizeObserver(() => {
+      const rect = mainContentRef.current?.getBoundingClientRect();
+      if (rect) {
+        // Chessboard is always square - size it by the minimum of:
+        // 1. Available height
+        // 2. Available width minus 200px for GameInfo (in landscape)
+        const isLandscape = window.innerWidth > window.innerHeight;
+        let size = rect.height;
+        
+        if (isLandscape) {
+          // In landscape, constrain by width minus GameInfo's minimum width (200px)
+          const maxWidthForBoard = Math.max(0, rect.width - 200);
+          size = Math.min(rect.height, maxWidthForBoard);
+        }
+        
+        setChessboardSize(Math.max(0, size));
+      }
+    });
+
+    observer.observe(mainContentRef.current);
+    
+    return () => observer.disconnect();
+  }, []);
 
   const makeComputerMove = async () => {
     setIsComputerThinking(true);
@@ -192,8 +222,13 @@ function App() {
 
   return (
     <div className="app">
-      <div className="main-content">
-        <Chessboard game={gameAtPosition} isDisabled={isDisabled} onMove={handleMove} />
+      <div className="main-content" ref={mainContentRef}>
+        <Chessboard 
+          game={gameAtPosition} 
+          isDisabled={isDisabled} 
+          onMove={handleMove}
+          chessboardSize={chessboardSize}
+        />
         <GameInfo
           game={gameAtPosition}
           currentMoveIndex={currentMoveIndex}
