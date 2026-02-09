@@ -10,6 +10,7 @@
   --bg-dark: #2a2a2a;
   --accent-color: #64b5f6;
   --border-radius: 6px;
+  background-color: #1a1a1a;
 }
 
 body {
@@ -18,6 +19,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #1a1a1a;
+  overflow-x: hidden;
 }
 
 #root {
@@ -26,7 +28,7 @@ body {
 }
 
 .app {
-  width: 100%;
+  width: calc(100% - 20px);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -36,7 +38,7 @@ body {
   padding: 0;
   box-sizing: border-box;
   max-width: 1600px;
-  margin: 0 auto;
+  margin: 10px;
   overflow: hidden;
 }
 
@@ -76,7 +78,7 @@ body {
 @media (orientation: portrait) {
   .main-content {
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     overflow-y: auto;
     overflow-x: hidden;
     max-height: 100%;

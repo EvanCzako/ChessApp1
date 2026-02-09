@@ -78,7 +78,10 @@ function App() {
           size = Math.min(rect.height, maxWidthForBoard);
         } else {
           // In portrait, size by width
-          size = rect.width;
+          // Desktop scrollbars take up space, mobile scrollbars don't
+          const hasHoverCapability = window.matchMedia('(hover: hover)').matches;
+          const scrollbarWidth = hasHoverCapability ? 15 : 0;
+          size = Math.max(0, rect.width - scrollbarWidth);
         }
         
         setChessboardSize(Math.max(0, size));

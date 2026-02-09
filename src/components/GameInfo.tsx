@@ -120,11 +120,6 @@ export const GameInfo: React.FC<GameInfoProps> = ({
           onResetFromHere={onResetFromHere}
         />
       )}
-
-      <div className="fen-info">
-        <p>Turn: <strong>{game.turn() === 'w' ? 'White' : 'Black'}</strong></p>
-        <p>FEN: <code>{game.fen()}</code></p>
-      </div>
     </div>
   );
 };
