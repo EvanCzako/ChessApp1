@@ -11,6 +11,26 @@
   min-height: 0;
 }
 
+/* Landscape orientation adjustments */
+@media (orientation: landscape) {
+  .game-info {
+    flex: 0 1 auto;
+    min-width: auto;
+    max-width: min(400px, 40vw);
+  }
+}
+
+/* Portrait orientation adjustments */
+@media (orientation: portrait) {
+  .game-info {
+    min-width: auto;
+    width: 100%;
+    max-width: 100%;
+    max-height: auto;
+    overflow-y: visible;
+  }
+}
+
 /* Top controls styling for sidebar layout */
 .game-info .controls-top {
   display: flex;

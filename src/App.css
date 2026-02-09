@@ -57,7 +57,17 @@ body {
   width: 100%;
   flex: 1;
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
+  flex-direction: row;
+}
+
+/* Portrait orientation: stack vertically */
+@media (orientation: portrait) {
+  .main-content {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 
 .difficulty-dropdown {
