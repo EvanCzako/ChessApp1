@@ -14,9 +14,11 @@
 /* Landscape orientation adjustments */
 @media (orientation: landscape) {
   .game-info {
-    flex: 0 1 auto;
+    width: max(200px, 30%);
     min-width: auto;
-    max-width: min(400px, 40vw);
+    max-width: none;
+    max-height: 100%;
+    overflow-y: auto;
   }
 }
 

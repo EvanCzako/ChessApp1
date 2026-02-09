@@ -192,7 +192,6 @@ function App() {
 
   return (
     <div className="app">
-      <h1>Chess Game</h1>
       <div className="main-content">
         <Chessboard game={gameAtPosition} isDisabled={isDisabled} onMove={handleMove} />
         <GameInfo
