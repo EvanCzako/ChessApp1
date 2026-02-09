@@ -68,16 +68,17 @@ function App() {
     const observer = new ResizeObserver(() => {
       const rect = mainContentRef.current?.getBoundingClientRect();
       if (rect) {
-        // Chessboard is always square - size it by the minimum of:
-        // 1. Available height
-        // 2. Available width minus 200px for GameInfo (in landscape)
+        // Chessboard is always square
         const isLandscape = window.innerWidth > window.innerHeight;
-        let size = rect.height;
+        let size: number;
         
         if (isLandscape) {
-          // In landscape, constrain by width minus GameInfo's minimum width (200px)
+          // In landscape, constrain by height and width minus GameInfo's minimum (200px)
           const maxWidthForBoard = Math.max(0, rect.width - 200);
           size = Math.min(rect.height, maxWidthForBoard);
+        } else {
+          // In portrait, size by width
+          size = rect.width;
         }
         
         setChessboardSize(Math.max(0, size));

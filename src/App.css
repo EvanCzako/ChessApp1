@@ -33,11 +33,20 @@ body {
   align-items: center;
   justify-content: flex-start;
   gap: 2rem;
-  padding: 2rem;
+  padding: 0;
   box-sizing: border-box;
   max-width: 1600px;
   margin: 0 auto;
   overflow: hidden;
+}
+
+/* Portrait orientation: allow overflow for scrolling */
+@media (orientation: portrait) {
+  .app {
+    height: auto;
+    overflow: visible;
+    min-height: 100vh;
+  }
 }
 
 .app h1 {
@@ -63,11 +72,15 @@ body {
   --chessboard-size: 100%;
 }
 
-/* Portrait orientation: stack vertically */
+/* Portrait orientation: stack vertically and allow scrolling */
 @media (orientation: portrait) {
   .main-content {
     flex-direction: column;
     align-items: center;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 100%;
+    scrollbar-gutter: stable;
   }
 }
 

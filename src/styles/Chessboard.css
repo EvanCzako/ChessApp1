@@ -18,6 +18,14 @@
   }
 }
 
+/* Portrait orientation: don't shrink, respect inline dimensions */
+@media (orientation: portrait) {
+  .chessboard-container {
+    flex-shrink: 0;
+    gap: 0;
+  }
+}
+
 .chessboard-container.disabled {
   opacity: 0.5;
   pointer-events: none;
