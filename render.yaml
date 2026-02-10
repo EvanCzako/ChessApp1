@@ -19,7 +19,4 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        fromService:
-          name: chess-backend
-          property: host
         value: https://chess-backend.onrender.com
