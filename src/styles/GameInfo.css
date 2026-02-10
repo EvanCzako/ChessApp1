@@ -58,14 +58,50 @@
 
 .game-info .color-selector label,
 .game-info .difficulty-selector label {
-  font-size: 0.9rem;
+  font-size: clamp(0.7rem, 1.5vw, 1.1rem);
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  color: var(--text-light);
 }
 
 .game-info .color-dropdown,
 .game-info .difficulty-dropdown {
   width: 100%;
+  padding: 0.75rem 0.75rem;
+  font-size: clamp(0.7rem, 1.5vw, 1.1rem);
+  background-color: #3a3a3a;
+  color: var(--text-light);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+  background-color: #3a3a3a;
+  color: var(--text-light);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.game-info .color-dropdown:hover:not(:disabled),
+.game-info .difficulty-dropdown:hover:not(:disabled) {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 8px rgba(100, 181, 246, 0.2);
+}
+
+.game-info .color-dropdown:focus,
+.game-info .difficulty-dropdown:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 12px rgba(100, 181, 246, 0.3);
+}
+
+.game-info .color-dropdown:disabled,
+.game-info .difficulty-dropdown:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .game-info .computer-thinking {
@@ -74,6 +110,9 @@
   border-left: 3px solid var(--accent-color);
   border-radius: 4px;
   text-align: center;
+  font-size: clamp(0.75rem, 1.5vw, 1.2rem);
+  font-weight: 600;
+  color: var(--text-light);
 }
 
 /* PGN Navigator styling within GameInfo */

@@ -90,9 +90,6 @@ export const PGNNavigator: React.FC<PGNNavigatorProps> = ({
         >
           {'◀'}
         </button>
-        <span className="position-indicator">
-          {currentMoveIndex === -1 ? 'Start' : `Move ${currentMoveIndex + 1}`} / {moves.length}
-        </span>
         <button
           onClick={handleNavigateNext}
           disabled={currentMoveIndex === moves.length - 1}

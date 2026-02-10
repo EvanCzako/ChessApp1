@@ -79,6 +79,7 @@ body {
     margin: 10px;
     width: calc(100% - 20px);
     height: calc(100% - 20px);
+    gap: 1.5rem;
   }
 }
 
@@ -94,6 +95,7 @@ body {
     margin: 10px;
     width: calc(100% - 20px);
     height: calc(100% - 20px);
+    gap: 1.5rem;
   }
 }
 
