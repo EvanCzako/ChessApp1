@@ -2,7 +2,7 @@ services:
   - type: web
     name: chess-app
     env: node
-    buildCommand: npm install && cd backend && npm install && cd .. && npm run build
+    buildCommand: npm install --production=false && cd backend && npm install && cd .. && npm run build
     startCommand: cd backend && npm start
     envVars:
       - key: PORT
