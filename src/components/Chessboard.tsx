@@ -21,6 +21,8 @@ const getPieceImage = (type: string, color: string) => {
 interface DragState {
   fromSquare: string | null;
   piece: string | null;
+  touchStartX?: number;
+  touchStartY?: number;
 }
 
 interface ChessboardProps {
@@ -99,6 +101,161 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
     // Optional: Add visual feedback
   };
 
+  const handleSquareTouchStart = (square: string) => {
+    if (isDisabled) return;
+
+    const piece = game.get(square as any);
+    
+    // If tapping on a piece and no piece is selected, select it
+    if (piece && !dragState.fromSquare) {
+      // Only allow selecting pieces of the current turn color
+      const isWhitePiece = piece.color === 'w';
+      const isWhiteTurn = game.turn() === 'w';
+
+      if (isWhitePiece !== isWhiteTurn) {
+        return;
+      }
+
+      // Get legal moves from this square
+      const moves = game.moves({ square: square as any, verbose: true });
+      const legalSquares = moves.map((m: any) => m.to);
+
+      setDragState({ fromSquare: square, piece: piece.type });
+      setLegalMoves(legalSquares);
+      return;
+    }
+
+    // If a piece is already selected and tapping a legal move, make the move
+    if (dragState.fromSquare && legalMoves.includes(square)) {
+      try {
+        const move = game.move({
+          from: dragState.fromSquare,
+          to: square,
+          promotion: 'q', // Default to queen for promotions
+        });
+
+        if (move) {
+          onMove(move.san);
+        }
+      } catch {
+        // Invalid move, silently fail
+      }
+
+      setDragState({ fromSquare: null, piece: null });
+      setLegalMoves([]);
+      return;
+    }
+
+    // If a piece is selected and tapping a different piece of same color, select it
+    if (dragState.fromSquare && piece) {
+      const isWhitePiece = piece.color === 'w';
+      const isWhiteTurn = game.turn() === 'w';
+
+      if (isWhitePiece === isWhiteTurn) {
+        // Select this piece instead
+        const moves = game.moves({ square: square as any, verbose: true });
+        const legalSquares = moves.map((m: any) => m.to);
+
+        setDragState({ fromSquare: square, piece: piece.type });
+        setLegalMoves(legalSquares);
+        return;
+      }
+    }
+
+    // Otherwise, deselect
+    setDragState({ fromSquare: null, piece: null });
+    setLegalMoves([]);
+  };
+
+  const handlePieceTouchStart = (e: React.TouchEvent, square: string) => {
+    if (isDisabled) e.preventDefault();
+    
+    const piece = game.get(square as any);
+    
+    if (!piece) return;
+
+    // Only allow dragging pieces of the current turn color
+    const isWhitePiece = piece.color === 'w';
+    const isWhiteTurn = game.turn() === 'w';
+
+    if (isWhitePiece !== isWhiteTurn) {
+      return;
+    }
+
+    // Get legal moves from this square
+    const moves = game.moves({ square: square as any, verbose: true });
+    const legalSquares = moves.map((m: any) => m.to);
+
+    const touch = e.touches[0];
+    setDragState({ 
+      fromSquare: square, 
+      piece: piece.type,
+      touchStartX: touch.clientX,
+      touchStartY: touch.clientY
+    });
+    setLegalMoves(legalSquares);
+  };
+
+  const handleBoardTouchEnd = (e: React.TouchEvent) => {
+    if (!dragState.fromSquare) return;
+
+    const touch = e.changedTouches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    // Find the square element
+    let squareElement = element as HTMLElement | null;
+    while (squareElement && !squareElement.classList.contains('square')) {
+      squareElement = squareElement.parentElement;
+    }
+
+    if (!squareElement) {
+      setDragState({ fromSquare: null, piece: null });
+      setLegalMoves([]);
+      return;
+    }
+
+    // Find the square index from the board
+    const board = squareElement.closest('.board') as HTMLElement;
+    if (!board) {
+      setDragState({ fromSquare: null, piece: null });
+      setLegalMoves([]);
+      return;
+    }
+
+    const squares = Array.from(board.querySelectorAll('.square'));
+    const squareIndex = squares.indexOf(squareElement);
+    
+    if (squareIndex === -1) {
+      setDragState({ fromSquare: null, piece: null });
+      setLegalMoves([]);
+      return;
+    }
+
+    // Convert index to square notation (board is 8x8, 0-63)
+    const rank = 7 - Math.floor(squareIndex / 8);
+    const file = squareIndex % 8;
+    const toSquare = String.fromCharCode(97 + file) + (rank + 1);
+
+    if (legalMoves.includes(toSquare)) {
+      try {
+        const move = game.move({
+          from: dragState.fromSquare,
+          to: toSquare,
+          promotion: 'q',
+        });
+
+        if (move) {
+          onMove(move.san);
+        }
+      } catch {
+        // Invalid move
+      }
+    }
+
+    setDragState({ fromSquare: null, piece: null });
+    setLegalMoves([]);
+  };
+
   const getSquareColor = (file: number, rank: number): string => {
     return (file + rank) % 2 === 0 ? 'white' : 'black';
   };
@@ -136,6 +293,7 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
                 alt={`${piece.color === 'w' ? 'white' : 'black'} ${piece.type}`}
                 draggable
                 onDragStart={(e) => handlePieceDragStart(e, square)}
+                onTouchStart={(e) => handlePieceTouchStart(e, square)}
               />
             )}
           </div>
@@ -151,7 +309,7 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
       className={`chessboard-container ${isDisabled ? 'disabled' : ''}`}
       style={chessboardSize ? { width: chessboardSize, height: chessboardSize } : undefined}
     >
-      <div className="board">
+      <div className="board" onTouchEnd={handleBoardTouchEnd}>
         {renderBoard()}
       </div>
     </div>

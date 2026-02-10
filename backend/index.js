@@ -2,15 +2,43 @@ import express from 'express';
 import cors from 'cors';
 import { spawn } from 'child_process';
 import { Chess } from 'chess.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import os from 'os';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = 3001;
-
-app.use(cors());
-app.use(express.json());
+const PORT = process.env.PORT || 3001;
 
 let stockfish = null;
 let isReady = false;
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || ['http://localhost:5173', 'http://localhost:3001'],
+  credentials: true
+}));
+app.use(express.json());
+
+// Serve static files from the frontend build
+const distPath = path.join(__dirname, '../dist');
+app.use(express.static(distPath));
+
+// Get Stockfish executable path based on platform
+function getStockfishPath() {
+  const platform = os.platform();
+  const arch = os.arch();
+  
+  if (platform === 'win32') {
+    // Windows
+    return 'C:\\Code\\stockfish\\stockfish-windows-x86-64-avx2.exe';
+  } else if (platform === 'darwin') {
+    // macOS
+    return '/usr/local/bin/stockfish';
+  } else {
+    // Linux (Render uses Linux)
+    return 'stockfish';
+  }
+}
 
 // Initialize Stockfish process
 function initStockfish() {
@@ -18,8 +46,10 @@ function initStockfish() {
     stockfish.kill();
   }
 
-  // Spawn Stockfish process - using full path
-  stockfish = spawn('C:\\Code\\stockfish\\stockfish-windows-x86-64-avx2.exe', {
+  const stockfishPath = getStockfishPath();
+  
+  // Spawn Stockfish process
+  stockfish = spawn(stockfishPath, {
     stdio: ['pipe', 'pipe', 'pipe']
   });
 
@@ -309,6 +339,15 @@ app.post('/api/evaluate', async (req, res) => {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: isReady ? 'ready' : 'initializing' });
+});
+
+// Catch-all route for SPA - serve index.html for any unmatched routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    if (err) {
+      res.status(404).send('Not found');
+    }
+  });
 });
 
 // Start server
