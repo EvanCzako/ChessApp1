@@ -10,13 +10,6 @@ interface MoveRecord {
   fen: string;
 }
 
-interface PendingMove {
-  san: string;
-  score: number;
-  rank: number;
-  totalMoves: number;
-}
-
 type Difficulty = 'impossible' | 'hard' | 'medium' | 'easy';
 type PlayerColor = 'white' | 'black';
 
@@ -25,7 +18,6 @@ function App() {
   const [moves, setMoves] = useState<MoveRecord[]>([]);
   const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
   const [isComputerThinking, setIsComputerThinking] = useState(false);
-  const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('impossible');
   const [playerColor, setPlayerColor] = useState<PlayerColor>('white');
   const [chessboardSize, setChessboardSize] = useState<number | undefined>();
@@ -42,7 +34,7 @@ function App() {
     return g;
   })();
 
-  const isDisabled = currentMoveIndex !== moves.length - 1 || isComputerThinking || pendingMove !== null;
+  const isDisabled = currentMoveIndex !== moves.length - 1 || isComputerThinking;
 
   // Computer move after player moves
   useEffect(() => {
@@ -154,32 +146,19 @@ function App() {
       // For display: invert rank for Black (most negative = rank 1, most positive = rank 30)
       const displayRank = isComputerWhite ? rankInSortedList : sortedMoves.length - rankInSortedList + 1;
 
-      // Show the pending move instead of making it immediately
-      setPendingMove({
+      // Make the move immediately
+      const newMoves = moves.slice(0, currentMoveIndex + 1);
+      newMoves.push({
         san: selectedMove.move,
-        score: selectedMove.score,
-        rank: displayRank,
-        totalMoves: sortedMoves.length
+        fen: gameAtPosition.fen(),
       });
+      setMoves(newMoves);
+      setCurrentMoveIndex(newMoves.length - 1);
+      setIsComputerThinking(false);
     } catch (error) {
       console.error('Error in computer move:', error);
       setIsComputerThinking(false);
     }
-  };
-
-  const confirmComputerMove = () => {
-    if (!pendingMove) return;
-
-    // Make the move
-    const newMoves = moves.slice(0, currentMoveIndex + 1);
-    newMoves.push({
-      san: pendingMove.san,
-      fen: gameAtPosition.fen(),
-    });
-    setMoves(newMoves);
-    setCurrentMoveIndex(newMoves.length - 1);
-    setPendingMove(null);
-    setIsComputerThinking(false);
   };
 
   const handleMove = (moveNotation: string) => {
@@ -221,7 +200,6 @@ function App() {
     setMoves([]);
     setCurrentMoveIndex(-1);
     setIsComputerThinking(false);
-    setPendingMove(null);
   };
 
   return (
@@ -240,13 +218,11 @@ function App() {
           difficulty={difficulty}
           playerColor={playerColor}
           isComputerThinking={isComputerThinking}
-          pendingMove={pendingMove}
           onNewGame={handleNewGame}
           onDifficultyChange={handleDifficultyChange}
           onPlayerColorChange={handlePlayerColorChange}
           onNavigate={handleNavigate}
           onResetFromHere={handleResetFromHere}
-          onConfirmMove={confirmComputerMove}
         />
       </div>
     </div>

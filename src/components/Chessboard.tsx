@@ -2,9 +2,20 @@ import React from 'react';
 import { Chess } from 'chess.js';
 import '../styles/Chessboard.css';
 
-const PIECE_UNICODE: { [key: string]: string } = {
-  'P': '♙', 'N': '♘', 'B': '♗', 'R': '♖', 'Q': '♕', 'K': '♔',
-  'p': '♟', 'n': '♞', 'b': '♝', 'r': '♜', 'q': '♛', 'k': '♚',
+// Map chess piece types to their file names
+const PIECE_TYPE_MAP: { [key: string]: string } = {
+  'P': 'pawn',
+  'N': 'knight',
+  'B': 'bishop',
+  'R': 'rook',
+  'Q': 'queen',
+  'K': 'king',
+};
+
+const getPieceImage = (type: string, color: string) => {
+  const pieceType = PIECE_TYPE_MAP[type.toUpperCase()];
+  const colorSuffix = color === 'w' ? 'w' : 'b';
+  return new URL(`../assets/pieces/${pieceType}-${colorSuffix}.svg`, import.meta.url).href;
 };
 
 interface DragState {
@@ -119,13 +130,13 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
             onDragLeave={handleSquareDragLeave}
           >
             {piece && (
-              <div
+              <img
                 className={`piece ${piece.color === 'w' ? 'white' : 'black'}`}
+                src={getPieceImage(piece.type, piece.color)}
+                alt={`${piece.color === 'w' ? 'white' : 'black'} ${piece.type}`}
                 draggable
                 onDragStart={(e) => handlePieceDragStart(e, square)}
-              >
-                {PIECE_UNICODE[piece.type.toUpperCase() as keyof typeof PIECE_UNICODE]}
-              </div>
+              />
             )}
           </div>
         );
