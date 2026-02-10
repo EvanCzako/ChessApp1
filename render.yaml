@@ -1,20 +1,11 @@
 services:
   - type: web
-    name: chess-backend
+    name: chess-app
     env: node
-    buildCommand: cd backend && npm install
+    buildCommand: npm install && cd backend && npm install && cd .. && npm run build
     startCommand: cd backend && npm start
     envVars:
       - key: PORT
         value: 3001
       - key: NODE_ENV
         value: production
-
-  - type: web
-    name: chess-frontend
-    env: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    envVars:
-      - key: VITE_API_URL
-        value: https://chess-backend.onrender.com
