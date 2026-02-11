@@ -3,7 +3,6 @@ import { Chess } from 'chess.js';
 import '../styles/PGNNavigator.css';
 
 interface PGNNavigatorProps {
-  game: Chess;
   currentMoveIndex: number;
   moves: Array<{ san: string; fen: string }>;
   onNavigate: (moveIndex: number) => void;
@@ -11,7 +10,6 @@ interface PGNNavigatorProps {
 }
 
 export const PGNNavigator: React.FC<PGNNavigatorProps> = ({
-  game,
   currentMoveIndex,
   moves,
   onNavigate,

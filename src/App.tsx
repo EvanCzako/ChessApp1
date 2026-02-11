@@ -212,7 +212,6 @@ function App() {
           chessboardSize={chessboardSize}
         />
         <GameInfo
-          game={gameAtPosition}
           currentMoveIndex={currentMoveIndex}
           moves={moves}
           difficulty={difficulty}

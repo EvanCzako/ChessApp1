@@ -1,5 +1,4 @@
 import React from 'react';
-import { Chess } from 'chess.js';
 import { PGNNavigator } from './PGNNavigator';
 import '../styles/GameInfo.css';
 
@@ -7,7 +6,6 @@ type Difficulty = 'impossible' | 'hard' | 'medium' | 'easy';
 type PlayerColor = 'white' | 'black';
 
 interface GameInfoProps {
-  game: Chess;
   currentMoveIndex: number;
   moves: Array<{ san: string; fen: string }>;
   difficulty: Difficulty;
@@ -21,7 +19,6 @@ interface GameInfoProps {
 }
 
 export const GameInfo: React.FC<GameInfoProps> = ({
-  game,
   currentMoveIndex,
   moves,
   difficulty,
@@ -74,7 +71,6 @@ export const GameInfo: React.FC<GameInfoProps> = ({
 
       {moves.length > 0 && (
         <PGNNavigator
-          game={game}
           currentMoveIndex={currentMoveIndex}
           moves={moves}
           onNavigate={onNavigate}
