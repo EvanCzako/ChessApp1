@@ -5,7 +5,6 @@ import { Chess } from 'chess.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
-import { execSync } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -24,7 +23,7 @@ app.use(express.json());
 const distPath = path.join(__dirname, '../dist');
 app.use(express.static(distPath));
 
-// Get Stockfish executable path - try multiple locations
+// Get Stockfish executable path based on platform
 function getStockfishPath() {
   const platform = os.platform();
   
@@ -35,24 +34,7 @@ function getStockfishPath() {
     // macOS
     return '/usr/local/bin/stockfish';
   } else {
-    // Linux - try multiple common locations
-    const candidates = [
-      'stockfish',
-      '/usr/bin/stockfish',
-      '/usr/local/bin/stockfish',
-      path.join(__dirname, '..', 'node_modules', '.bin', 'stockfish')
-    ];
-    
-    for (const candidate of candidates) {
-      try {
-        execSync(`which ${candidate} 2>/dev/null || test -f ${candidate}`, { stdio: 'ignore' });
-        return candidate;
-      } catch (e) {
-        // Try next candidate
-      }
-    }
-    
-    // Default fallback
+    // Linux - stockfish will be installed via apt-get, available in system PATH
     return 'stockfish';
   }
 }
