@@ -10,7 +10,7 @@ interface MoveRecord {
   fen: string;
 }
 
-type Difficulty = 'impossible' | 'hard' | 'medium' | 'easy';
+type Difficulty = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
 type PlayerColor = 'white' | 'black';
 
 function App() {
@@ -18,7 +18,7 @@ function App() {
   const [moves, setMoves] = useState<MoveRecord[]>([]);
   const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
   const [isComputerThinking, setIsComputerThinking] = useState(false);
-  const [difficulty, setDifficulty] = useState<Difficulty>('impossible');
+  const [difficulty, setDifficulty] = useState<Difficulty>('9');
   const [playerColor, setPlayerColor] = useState<PlayerColor>('white');
   const [chessboardSize, setChessboardSize] = useState<number | undefined>();
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -97,10 +97,15 @@ function App() {
 
       // Calculate how many top moves to evaluate based on difficulty
       const percentages: Record<Difficulty, number> = {
-        impossible: 0,    // Top 1 move (0%)
-        hard: 0.1,        // Top 10%
-        medium: 0.2,      // Top 20%
-        easy: 0.5,        // Top 50%
+        '1': 0.5,   // Easiest - top 50%
+        '2': 0.43,
+        '3': 0.37,
+        '4': 0.3,
+        '5': 0.23,
+        '6': 0.17,
+        '7': 0.1,
+        '8': 0.05,
+        '9': 0,     // Hardest - top 1 move
       };
 
       const percentile = percentages[difficulty];
@@ -113,7 +118,7 @@ function App() {
       const evaluations = await evaluateMoves(
         gameAtPosition.fen(),
         legalMoves,
-        10,
+        15,
         selectedRank
       );
 

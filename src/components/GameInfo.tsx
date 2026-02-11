@@ -2,7 +2,7 @@ import React from 'react';
 import { PGNNavigator } from './PGNNavigator';
 import '../styles/GameInfo.css';
 
-type Difficulty = 'impossible' | 'hard' | 'medium' | 'easy';
+type Difficulty = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
 type PlayerColor = 'white' | 'black';
 
 interface GameInfoProps {
@@ -58,10 +58,15 @@ export const GameInfo: React.FC<GameInfoProps> = ({
             onChange={(e) => onDifficultyChange(e.target.value as Difficulty)}
             disabled={isComputerThinking}
           >
-            <option value="impossible">Impossible</option>
-            <option value="hard">Hard</option>
-            <option value="medium">Medium</option>
-            <option value="easy">Easy</option>
+            <option value="1">1 - Easiest</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9 - Hardest</option>
           </select>
         </div>
         {isComputerThinking && (
