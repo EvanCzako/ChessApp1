@@ -105,10 +105,11 @@ function App() {
       // Create a map of move notation to score for quick lookup
       const evalMap = new Map(evaluations.map((evaluation) => [evaluation.move, evaluation]));
 
-      // Always sort descending (highest/most positive first)
+      // Sort moves by evaluation (highest first - best move for the side to move)
+      // Evaluations are now from the perspective of the side making the move
       const sortedMoves = evaluations.slice().sort((a, b) => b.score - a.score);
 
-      console.log('Ranked moves (White perspective):', sortedMoves.map(m => ({ move: m.move, eval: m.score })));
+      console.log('Ranked moves (perspective of side to move):', sortedMoves.map(m => ({ move: m.move, eval: m.score })));
 
       // Select move based on difficulty
       let selectedMove;
@@ -125,26 +126,16 @@ function App() {
       // Determine if computer is White or Black
       const isComputerWhite = playerColor === 'black';
 
-      // Since evaluations are always from White's perspective:
-      // - White picks from TOP (highest positive scores)
-      // - Black picks from BOTTOM (lowest/most negative scores)
+      // Evaluations are now from the perspective of the side making the moves
+      // Always pick from the top (highest scores are best)
       let candidateMoves;
-      if (isComputerWhite) {
-        // Computer is White: pick from top
-        candidateMoves = sortedMoves.slice(0, moveCount);
-      } else {
-        // Computer is Black: pick from bottom
-        candidateMoves = sortedMoves.slice(-moveCount);
-      }
+      candidateMoves = sortedMoves.slice(0, moveCount);
       
       // Randomly select from candidate moves
       selectedMove = candidateMoves[Math.floor(Math.random() * candidateMoves.length)];
 
       // Find the rank of the selected move in the full sorted list
       const rankInSortedList = sortedMoves.findIndex(m => m.move === selectedMove.move) + 1;
-      
-      // For display: invert rank for Black (most negative = rank 1, most positive = rank 30)
-      const displayRank = isComputerWhite ? rankInSortedList : sortedMoves.length - rankInSortedList + 1;
 
       // Make the move immediately
       const newMoves = moves.slice(0, currentMoveIndex + 1);

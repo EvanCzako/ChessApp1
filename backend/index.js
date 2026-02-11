@@ -5,6 +5,7 @@ import { Chess } from 'chess.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
+import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -26,40 +27,73 @@ app.use(express.static(distPath));
 // Get Stockfish executable path based on platform
 function getStockfishPath() {
   const platform = os.platform();
-  
-  // Check if path is provided via environment variable (e.g., from build process)
-  if (process.env.STOCKFISH_PATH) {
-    console.log(`Using Stockfish path from environment: ${process.env.STOCKFISH_PATH}`);
-    return process.env.STOCKFISH_PATH;
-  }
+  const projectRoot = path.join(__dirname, '..');
   
   if (platform === 'win32') {
-    // Windows
-    return 'C:\\Code\\stockfish\\stockfish-windows-x86-64-avx2.exe';
+    // Windows - try project stockfish folder with specific executable name, then common paths
+    const winPaths = [
+      path.join(projectRoot, 'stockfish', 'stockfish-windows.exe'),
+      path.join(projectRoot, 'stockfish', 'stockfish-windows-x86-64-avx2.exe'),
+      path.join(projectRoot, 'stockfish', 'stockfish.exe'),
+      path.join(projectRoot, 'stockfish', 'stockfish'),
+      'C:\\Code\\stockfish\\stockfish-windows.exe',
+      'C:\\Program Files\\stockfish\\stockfish.exe',
+      'C:\\Program Files (x86)\\stockfish\\stockfish.exe',
+      'stockfish' // Try from PATH
+    ];
+    
+    for (const p of winPaths) {
+      if (p !== 'stockfish') {
+        try {
+          fs.accessSync(p);
+          console.log(`Found Stockfish at: ${p}`);
+          return p;
+        } catch (e) {
+          // Continue to next path
+        }
+      }
+    }
+    
+    return 'stockfish'; // Fall back to PATH
   } else if (platform === 'darwin') {
-    // macOS
-    return '/usr/local/bin/stockfish';
+    // macOS - try project stockfish folder first
+    const macPaths = [
+      path.join(projectRoot, 'stockfish', 'stockfish'),
+      '/usr/local/bin/stockfish',
+      '/opt/homebrew/bin/stockfish'
+    ];
+    
+    for (const p of macPaths) {
+      try {
+        fs.accessSync(p);
+        console.log(`Found Stockfish at: ${p}`);
+        return p;
+      } catch (e) {
+        // Continue to next path
+      }
+    }
+    
+    return 'stockfish'; // Fall back to PATH
   } else {
-    // Linux - try common installation paths
-    const commonPaths = [
+    // Linux - try project stockfish folder first, then common installation paths
+    const linuxPaths = [
+      path.join(projectRoot, 'stockfish', 'stockfish'),
       '/usr/games/stockfish',
       '/usr/bin/stockfish',
       '/usr/local/bin/stockfish'
     ];
     
-    for (const path of commonPaths) {
+    for (const p of linuxPaths) {
       try {
-        require('fs').accessSync(path);
-        console.log(`Found Stockfish at: ${path}`);
-        return path;
+        fs.accessSync(p);
+        console.log(`Found Stockfish at: ${p}`);
+        return p;
       } catch (e) {
         // Path doesn't exist, try next one
       }
     }
     
-    // Default fallback
-    console.warn('Stockfish not found in common paths, using default: /usr/games/stockfish');
-    return '/usr/games/stockfish';
+    return 'stockfish'; // Fall back to PATH
   }
 }
 
@@ -176,7 +210,30 @@ app.post('/api/evaluate', async (req, res) => {
     }
 
     if (!isReady) {
-      return res.status(503).json({ error: 'Stockfish is not ready' });
+      console.warn('Stockfish not ready, returning default evaluations for', requestedMoves?.length || 0, 'moves');
+      
+      // Return default evaluations when Stockfish is not available
+      if (requestedMoves && Array.isArray(requestedMoves) && requestedMoves.length > 0) {
+        const evaluations = requestedMoves.map((move) => ({
+          move,
+          evaluation: 0
+        }));
+        
+        return res.json({
+          fen,
+          topMoves: evaluations.map((e, idx) => ({
+            rank: idx + 1,
+            move: e.move,
+            evaluation: e.evaluation
+          }))
+        });
+      } else {
+        return res.json({
+          fen,
+          topMoves: [],
+          warning: 'Stockfish is not available'
+        });
+      }
     }
 
     // Determine whose turn it is in the current position
@@ -244,11 +301,9 @@ app.post('/api/evaluate', async (req, res) => {
             }
           }
 
-          // Convert evaluation to always be from White's perspective
-          // If it's Black's turn in the resulting position, negate to convert back to White's perspective
-          // If it's White's turn in the resulting position, keep as-is
-          const isBlackToMove_After = newFen.split(' ')[1] === 'b';
-          const evaluation = isBlackToMove_After ? -bestEval : bestEval;
+          // Negate evaluation to convert from the position's perspective (side to move)
+          // to the side that made the move's perspective (the side choosing between moves)
+          const evaluation = -bestEval;
           
           evaluations.push({ move: moveNotation, evaluation });
         } catch (error) {
