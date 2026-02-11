@@ -5,6 +5,7 @@ import { Chess } from 'chess.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
+import { execSync } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -23,10 +24,9 @@ app.use(express.json());
 const distPath = path.join(__dirname, '../dist');
 app.use(express.static(distPath));
 
-// Get Stockfish executable path based on platform
+// Get Stockfish executable path - try multiple locations
 function getStockfishPath() {
   const platform = os.platform();
-  const arch = os.arch();
   
   if (platform === 'win32') {
     // Windows
@@ -35,7 +35,24 @@ function getStockfishPath() {
     // macOS
     return '/usr/local/bin/stockfish';
   } else {
-    // Linux (Render uses Linux)
+    // Linux - try multiple common locations
+    const candidates = [
+      'stockfish',
+      '/usr/bin/stockfish',
+      '/usr/local/bin/stockfish',
+      path.join(__dirname, '..', 'node_modules', '.bin', 'stockfish')
+    ];
+    
+    for (const candidate of candidates) {
+      try {
+        execSync(`which ${candidate} 2>/dev/null || test -f ${candidate}`, { stdio: 'ignore' });
+        return candidate;
+      } catch (e) {
+        // Try next candidate
+      }
+    }
+    
+    // Default fallback
     return 'stockfish';
   }
 }
@@ -43,10 +60,15 @@ function getStockfishPath() {
 // Initialize Stockfish process
 function initStockfish() {
   if (stockfish) {
-    stockfish.kill();
+    try {
+      stockfish.kill();
+    } catch (e) {
+      // Already dead
+    }
   }
 
   const stockfishPath = getStockfishPath();
+  console.log(`Attempting to start Stockfish from: ${stockfishPath}`);
   
   // Spawn Stockfish process
   stockfish = spawn(stockfishPath, {
@@ -54,6 +76,7 @@ function initStockfish() {
   });
 
   let buffer = '';
+  let initialized = false;
 
   stockfish.stdout.on('data', (data) => {
     buffer += data.toString();
@@ -78,21 +101,36 @@ function initStockfish() {
     const checkReady = setInterval(() => {
       if (buffer.includes('uciok')) {
         clearInterval(checkReady);
-        isReady = true;
-        console.log('Stockfish initialized');
-        // Set MultiPV option
-        stockfish.stdin.write('setoption name MultiPV value 5\n');
+        if (!initialized) {
+          initialized = true;
+          isReady = true;
+          console.log('Stockfish initialized successfully');
+          // Set MultiPV option
+          try {
+            stockfish.stdin.write('setoption name MultiPV value 5\n');
+          } catch (e) {
+            console.error('Error setting MultiPV option:', e);
+          }
+        }
         resolve();
       }
     }, 100);
 
-    stockfish.stdin.write('uci\n');
-    stockfish.stdin.write('isready\n');
+    try {
+      stockfish.stdin.write('uci\n');
+      stockfish.stdin.write('isready\n');
+    } catch (e) {
+      console.error('Error writing to Stockfish:', e);
+      isReady = false;
+      clearInterval(checkReady);
+      resolve();
+    }
 
     setTimeout(() => {
       clearInterval(checkReady);
-      if (!isReady) {
-        console.warn('Stockfish initialization timeout');
+      if (!initialized) {
+        console.warn('Stockfish initialization timeout after 5 seconds');
+        isReady = false;
       }
       resolve();
     }, 5000);
