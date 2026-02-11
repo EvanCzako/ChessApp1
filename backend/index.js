@@ -63,6 +63,11 @@ function initStockfish() {
     console.error(`Stockfish stderr: ${data}`);
   });
 
+  stockfish.on('error', (error) => {
+    console.error(`Failed to start Stockfish: ${error.message}`);
+    isReady = false;
+  });
+
   stockfish.on('close', (code) => {
     console.log(`Stockfish process exited with code ${code}`);
     isReady = false;

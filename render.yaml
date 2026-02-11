@@ -2,6 +2,7 @@ services:
   - type: web
     name: chess-app
     env: node
+    prebuildCommand: apt-get update && apt-get install -y stockfish
     buildCommand: npm install --production=false && cd backend && npm install && cd .. && npm run build
     startCommand: cd backend && npm start
     envVars:
