@@ -3,17 +3,19 @@ set -e
 
 mkdir -p ../bin
 
-# Download Linux Stockfish zip
-curl -L https://stockfishchess.org/files/stockfish-15.1-linux-x64-bmi2.zip -o sf.zip
+# Download Stockfish Linux zip (direct link)
+curl -L https://github.com/official-stockfish/Stockfish/releases/download/sf_15.1/stockfish_15.1_linux_x64_bmi2.zip -o sf.zip
 
 # Unzip into bin folder
 unzip -o sf.zip -d ../bin
 
-# Make executable (binary inside the zip is usually named 'stockfish-15.1-linux-x64-bmi2')
-chmod +x ../bin/stockfish-15.1-linux-x64-bmi2
+# The executable inside the zip
+chmod +x ../bin/stockfish_15.1_linux_x64_bmi2
 
-# Optionally, rename to simple 'stockfish' for easier path reference
-mv ../bin/stockfish-15.1-linux-x64-bmi2 ../bin/stockfish
+# Rename to 'stockfish' for simplicity
+mv ../bin/stockfish_15.1_linux_x64_bmi2 ../bin/stockfish
 
 # Clean up
 rm sf.zip
+
+echo "Stockfish installed to ../bin/stockfish"
