@@ -1,9 +1,13 @@
+#!/usr/bin/env bash
+set -e
+
+# Ensure bin folder exists
 mkdir -p ./bin
 
-# Download tar
+# Download Stockfish tar
 curl -L -o ./bin/stockfish.tar https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64-avx2.tar
 
-# Extract tar
+# Extract tar into bin
 tar -xf ./bin/stockfish.tar -C ./bin
 
 # Path to the binary inside extracted folder
@@ -15,11 +19,14 @@ if [ ! -f "$EXTRACTED_BINARY" ]; then
     exit 1
 fi
 
-# Make it executable
+# Make the extracted binary executable
 chmod +x "$EXTRACTED_BINARY"
 
 # Copy / rename to a flat, consistent name
 cp "$EXTRACTED_BINARY" ./bin/stockfish
+
+# Make the flattened binary executable too (fix EACCES)
+chmod +x ./bin/stockfish
 
 # Clean up tar
 rm ./bin/stockfish.tar
