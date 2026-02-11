@@ -104,20 +104,23 @@ function App() {
       };
 
       const percentile = percentages[difficulty];
-      const moveCountToEvaluate = Math.max(1, Math.ceil(legalMoves.length * percentile));
+      const maxMoveCount = Math.max(1, Math.ceil(legalMoves.length * percentile));
+      
+      // Randomly pick which ranked move to select (e.g., pick the 7th best from top 10)
+      const selectedRank = Math.floor(Math.random() * maxMoveCount) + 1;
 
-      // Evaluate only the number of moves we need
+      // Evaluate only up to the randomly selected rank
       const evaluations = await evaluateMoves(
         gameAtPosition.fen(),
         legalMoves,
         10,
-        moveCountToEvaluate
+        selectedRank
       );
 
-      console.log('Ranked moves (perspective of side to move):', evaluations.map(m => ({ move: m.move, eval: m.score })));
+      console.log(`Ranked moves (perspective of side to move): selecting rank ${selectedRank}`, evaluations.map(m => ({ move: m.move, eval: m.score })));
 
-      // Select from the evaluated moves (which are already the top N based on difficulty)
-      const selectedMove = evaluations[Math.floor(Math.random() * evaluations.length)];
+      // Select the last move (which is the randomly selected rank)
+      const selectedMove = evaluations[evaluations.length - 1];
 
       // Make the move immediately
       const newMoves = moves.slice(0, currentMoveIndex + 1);
