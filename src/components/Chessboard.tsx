@@ -30,9 +30,10 @@ interface ChessboardProps {
   isDisabled: boolean;
   onMove: (moveDescription: string) => void;
   chessboardSize?: number;
+  playerColor?: 'white' | 'black';
 }
 
-export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove, chessboardSize }) => {
+export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove, chessboardSize, playerColor = 'white' }) => {
   const [dragState, setDragState] = React.useState<DragState>({ fromSquare: null, piece: null });
   const [legalMoves, setLegalMoves] = React.useState<string[]>([]);
 
@@ -232,8 +233,19 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
     }
 
     // Convert index to square notation (board is 8x8, 0-63)
-    const rank = 7 - Math.floor(squareIndex / 8);
-    const file = squareIndex % 8;
+    const isBlackPerspective = playerColor === 'black';
+    let rank: number;
+    let file: number;
+    
+    if (isBlackPerspective) {
+      // From black's perspective: index 0 is a8, index 1 is b8, etc.
+      rank = Math.floor(squareIndex / 8);
+      file = 7 - (squareIndex % 8);
+    } else {
+      // From white's perspective: index 0 is a1, index 1 is b1, etc.
+      rank = 7 - Math.floor(squareIndex / 8);
+      file = squareIndex % 8;
+    }
     const toSquare = String.fromCharCode(97 + file) + (rank + 1);
 
     if (legalMoves.includes(toSquare)) {
@@ -257,7 +269,7 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
   };
 
   const getSquareColor = (file: number, rank: number): string => {
-    return (file + rank) % 2 === 0 ? 'white' : 'black';
+    return (file + rank) % 2 === 0 ? 'black' : 'white';
   };
 
   const resetGame = () => {
@@ -266,9 +278,17 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
 
   const renderBoard = () => {
     const squares = [];
+    
+    const isBlackPerspective = playerColor === 'black';
+    const rankStart = isBlackPerspective ? 0 : 7;
+    const rankEnd = isBlackPerspective ? 8 : -1;
+    const rankStep = isBlackPerspective ? 1 : -1;
+    const fileStart = isBlackPerspective ? 7 : 0;
+    const fileEnd = isBlackPerspective ? -1 : 8;
+    const fileStep = isBlackPerspective ? -1 : 1;
 
-    for (let rank = 7; rank >= 0; rank--) {
-      for (let file = 0; file < 8; file++) {
+    for (let rank = rankStart; rank !== rankEnd; rank += rankStep) {
+      for (let file = fileStart; file !== fileEnd; file += fileStep) {
         const fileChar = String.fromCharCode(97 + file); // a-h
         const square = `${fileChar}${rank + 1}`;
         const piece = game.get(square as any);

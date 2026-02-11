@@ -201,6 +201,7 @@ function App() {
           isDisabled={isDisabled} 
           onMove={handleMove}
           chessboardSize={chessboardSize}
+          playerColor={playerColor}
         />
         <GameInfo
           currentMoveIndex={currentMoveIndex}
