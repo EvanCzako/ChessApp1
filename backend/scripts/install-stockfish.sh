@@ -10,13 +10,11 @@ curl -L -o ../bin/stockfish.tar https://github.com/official-stockfish/Stockfish/
 # Extract tar into bin
 tar -xf ../bin/stockfish.tar -C ../bin
 
-# Remove old stockfish file if it exists (file or directory)
-if [ -e ../bin/stockfish ]; then
-  rm -rf ../bin/stockfish
-fi
+# Remove old stockfish file or folder
+rm -rf ../bin/stockfish
 
-# Find the first executable inside ../bin
-EXTRACTED_BINARY=$(find ../bin -type f -perm /111 | head -n 1)
+# Look for the extracted binary (usually named 'stockfish' inside folder)
+EXTRACTED_BINARY=$(find ../bin -type f -name "stockfish" | head -n 1)
 
 if [ -z "$EXTRACTED_BINARY" ]; then
   echo "Error: Could not find extracted Stockfish binary"
@@ -26,7 +24,7 @@ fi
 # Make it executable
 chmod +x "$EXTRACTED_BINARY"
 
-# Copy it to ../bin/stockfish
+# Copy it to a flat path ../bin/stockfish
 cp "$EXTRACTED_BINARY" ../bin/stockfish
 
 # Clean up tar
