@@ -95,24 +95,7 @@ function App() {
         return; // Game is over
       }
 
-      // Evaluate all moves
-      const evaluations = await evaluateMoves(
-        gameAtPosition.fen(),
-        legalMoves,
-        10
-      );
-
-      // Create a map of move notation to score for quick lookup
-      const evalMap = new Map(evaluations.map((evaluation) => [evaluation.move, evaluation]));
-
-      // Sort moves by evaluation (highest first - best move for the side to move)
-      // Evaluations are now from the perspective of the side making the move
-      const sortedMoves = evaluations.slice().sort((a, b) => b.score - a.score);
-
-      console.log('Ranked moves (perspective of side to move):', sortedMoves.map(m => ({ move: m.move, eval: m.score })));
-
-      // Select move based on difficulty
-      let selectedMove;
+      // Calculate how many top moves to evaluate based on difficulty
       const percentages: Record<Difficulty, number> = {
         impossible: 0,    // Top 1 move (0%)
         hard: 0.1,        // Top 10%
@@ -121,21 +104,20 @@ function App() {
       };
 
       const percentile = percentages[difficulty];
-      const moveCount = Math.max(1, Math.ceil(sortedMoves.length * percentile));
-      
-      // Determine if computer is White or Black
-      const isComputerWhite = playerColor === 'black';
+      const moveCountToEvaluate = Math.max(1, Math.ceil(legalMoves.length * percentile));
 
-      // Evaluations are now from the perspective of the side making the moves
-      // Always pick from the top (highest scores are best)
-      let candidateMoves;
-      candidateMoves = sortedMoves.slice(0, moveCount);
-      
-      // Randomly select from candidate moves
-      selectedMove = candidateMoves[Math.floor(Math.random() * candidateMoves.length)];
+      // Evaluate only the number of moves we need
+      const evaluations = await evaluateMoves(
+        gameAtPosition.fen(),
+        legalMoves,
+        10,
+        moveCountToEvaluate
+      );
 
-      // Find the rank of the selected move in the full sorted list
-      const rankInSortedList = sortedMoves.findIndex(m => m.move === selectedMove.move) + 1;
+      console.log('Ranked moves (perspective of side to move):', evaluations.map(m => ({ move: m.move, eval: m.score })));
+
+      // Select from the evaluated moves (which are already the top N based on difficulty)
+      const selectedMove = evaluations[Math.floor(Math.random() * evaluations.length)];
 
       // Make the move immediately
       const newMoves = moves.slice(0, currentMoveIndex + 1);

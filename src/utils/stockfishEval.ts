@@ -5,14 +5,16 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 export async function evaluateMoves(
   fen: string,
   movesSan: string[],
-  depth: number = 15
+  depth: number = 15,
+  limit?: number
 ): Promise<Array<{ move: string; score: number; isMate: boolean }>> {
   try {
-    // Request evaluation for all moves
+    // Request evaluation for specified moves or limit to top N moves
     const response = await axios.post(`${API_URL}/api/evaluate`, {
       fen,
       depth,
-      moves: movesSan
+      moves: movesSan,
+      limit
     });
 
     const { topMoves } = response.data;

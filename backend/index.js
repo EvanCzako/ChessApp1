@@ -211,7 +211,9 @@ function sendToStockfish(command) {
 // Evaluate position endpoint
 app.post('/api/evaluate', async (req, res) => {
   try {
-    const { fen, depth = 15, moves: requestedMoves } = req.body;
+    const { fen, depth = 15, moves: requestedMoves, limit } = req.body;
+
+    console.log(`Evaluate request - moves count: ${requestedMoves?.length || 0}, limit: ${limit}`);
 
     if (!fen) {
       return res.status(400).json({ error: 'FEN position is required' });
@@ -222,7 +224,8 @@ app.post('/api/evaluate', async (req, res) => {
       
       // Return default evaluations when Stockfish is not available
       if (requestedMoves && Array.isArray(requestedMoves) && requestedMoves.length > 0) {
-        const evaluations = requestedMoves.map((move) => ({
+        const movesToReturn = limit ? requestedMoves.slice(0, limit) : requestedMoves;
+        const evaluations = movesToReturn.map((move) => ({
           move,
           evaluation: 0
         }));
@@ -247,11 +250,118 @@ app.post('/api/evaluate', async (req, res) => {
     // Determine whose turn it is in the current position
     const isBlackToMove = fen.split(' ')[1] === 'b';
 
-    // If specific moves are provided, evaluate each one individually
-    if (requestedMoves && Array.isArray(requestedMoves) && requestedMoves.length > 0) {
-      const evaluations = [];
+    // If a limit is provided and is small, use MultiPV analysis for efficiency
+    const useMultiPV = limit && limit <= 10;
+    console.log(`useMultiPV: ${useMultiPV}, limit: ${limit}`);
 
-      for (const moveNotation of requestedMoves) {
+    if (useMultiPV) {
+      console.log(`Using MultiPV path with limit=${limit}`);
+      // Dynamically set MultiPV to the requested limit
+      await sendToStockfish(`setoption name MultiPV value ${limit}`);
+      // Use MultiPV analysis to get the top N moves efficiently
+      await sendToStockfish(`position fen ${fen}`);
+
+      const analysisPromise = new Promise((resolve) => {
+        let buffer = '';
+        const dataHandler = (data) => {
+          buffer += data.toString();
+          if (buffer.includes('bestmove')) {
+            stockfish.stdout.removeListener('data', dataHandler);
+            resolve(buffer);
+          }
+        };
+
+        stockfish.stdout.on('data', dataHandler);
+        stockfish.stdin.write(`go depth ${depth} multipv ${limit} movetime 2000\n`);
+
+        setTimeout(() => {
+          stockfish.stdout.removeListener('data', dataHandler);
+          resolve(buffer);
+        }, 10000);
+      });
+
+      const analysis = await analysisPromise;
+      const lines = analysis.split('\n');
+      const mvMap = new Map();
+
+      // Parse all info lines to collect top N moves
+      const infoLines = lines.filter(line => line.includes('info') && line.includes('multipv'));
+
+      for (const line of infoLines) {
+        const mvMatch = line.match(/multipv (\d+)/);
+        const cpMatch = line.match(/cp (-?\d+)/);
+        const mateMatch = line.match(/mate (-?\d+)/);
+        const depthMatch = line.match(/depth (\d+)/);
+        
+        if (mvMatch) {
+          const mvNum = parseInt(mvMatch[1]);
+          
+          // Extract move from pv section
+          const pvMatch = line.match(/\bpv\s+(\S+)/);
+          const uciMove = pvMatch ? pvMatch[1] : '';
+          
+          let sanMove = uciMove;
+          let eval_score = 0;
+          
+          if (cpMatch) {
+            eval_score = parseInt(cpMatch[1]) / 100;
+          } else if (mateMatch) {
+            const mateIn = parseInt(mateMatch[1]);
+            eval_score = mateIn > 0 ? 999 : -999;
+          }
+          
+          // Convert UCI move to SAN notation
+          if (uciMove) {
+            try {
+              const tempGame = new Chess(fen);
+              const move = tempGame.move({
+                from: uciMove.substring(0, 2),
+                to: uciMove.substring(2, 4),
+                promotion: uciMove.length > 4 ? uciMove[4] : undefined
+              });
+              if (move) {
+                sanMove = move.san;
+              }
+            } catch (e) {
+              console.error(`Failed to convert UCI move ${uciMove} to SAN:`, e);
+            }
+          }
+          
+          const depth = depthMatch ? parseInt(depthMatch[1]) : 0;
+          
+          if (sanMove && (!mvMap.has(mvNum) || mvMap.get(mvNum).depth < depth)) {
+            mvMap.set(mvNum, {
+              move: sanMove,
+              evaluation: eval_score,
+              depth
+            });
+          }
+        }
+      }
+
+      // Build result from map, sorted by multipv rank
+      const evaluations = [];
+      for (let i = 1; i <= limit; i++) {
+        if (mvMap.has(i)) {
+          evaluations.push(mvMap.get(i));
+        }
+      }
+
+      res.json({
+        fen,
+        topMoves: evaluations.map((e, idx) => ({
+          rank: idx + 1,
+          move: e.move,
+          evaluation: e.evaluation
+        }))
+      });
+    } else if (requestedMoves && Array.isArray(requestedMoves) && requestedMoves.length > 0) {
+      console.log(`Using individual move evaluation path, evaluating ${limit ? limit : requestedMoves.length} of ${requestedMoves.length} moves`);
+      // If specific moves are provided, evaluate each one individually
+      const evaluations = [];
+      const movesToEvaluate = limit ? requestedMoves.slice(0, limit) : requestedMoves;
+
+      for (const moveNotation of movesToEvaluate) {
         try {
           const tempGame = new Chess(fen);
           const move = tempGame.move(moveNotation);
