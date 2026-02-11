@@ -34,8 +34,8 @@ function getStockfishPath() {
     // macOS
     return '/usr/local/bin/stockfish';
   } else {
-    // Linux - stockfish will be installed via apt-get, available in system PATH
-    return 'stockfish';
+    // Linux - apt-get install stockfish installs to /usr/games/stockfish
+    return '/usr/games/stockfish';
   }
 }
 
