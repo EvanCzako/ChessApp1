@@ -12,6 +12,7 @@ tar -xf ./bin/stockfish.tar -C ./bin
 
 # Path to the binary inside extracted folder
 EXTRACTED_BINARY=./bin/stockfish/stockfish-ubuntu-x86-64-avx2
+FLATTENED_BINARY=./bin/stockfish
 
 if [ ! -f "$EXTRACTED_BINARY" ]; then
     echo "Error: Stockfish binary not found at expected path: $EXTRACTED_BINARY"
@@ -22,13 +23,15 @@ fi
 # Make the extracted binary executable
 chmod +x "$EXTRACTED_BINARY"
 
-# Copy / rename to a flat, consistent name
-cp "$EXTRACTED_BINARY" ./bin/stockfish
+# Only move / copy if destination is different
+if [ "$EXTRACTED_BINARY" != "$FLATTENED_BINARY" ]; then
+    cp "$EXTRACTED_BINARY" "$FLATTENED_BINARY"
+fi
 
-# Make the flattened binary executable too (fix EACCES)
-chmod +x ./bin/stockfish
+# Make the flattened binary executable too
+chmod +x "$FLATTENED_BINARY"
 
 # Clean up tar
 rm ./bin/stockfish.tar
 
-echo "Stockfish installed to ./bin/stockfish"
+echo "Stockfish installed to $FLATTENED_BINARY"
