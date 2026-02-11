@@ -27,6 +27,12 @@ app.use(express.static(distPath));
 function getStockfishPath() {
   const platform = os.platform();
   
+  // Check if path is provided via environment variable (e.g., from build process)
+  if (process.env.STOCKFISH_PATH) {
+    console.log(`Using Stockfish path from environment: ${process.env.STOCKFISH_PATH}`);
+    return process.env.STOCKFISH_PATH;
+  }
+  
   if (platform === 'win32') {
     // Windows
     return 'C:\\Code\\stockfish\\stockfish-windows-x86-64-avx2.exe';
@@ -34,7 +40,25 @@ function getStockfishPath() {
     // macOS
     return '/usr/local/bin/stockfish';
   } else {
-    // Linux - apt-get install stockfish installs to /usr/games/stockfish
+    // Linux - try common installation paths
+    const commonPaths = [
+      '/usr/games/stockfish',
+      '/usr/bin/stockfish',
+      '/usr/local/bin/stockfish'
+    ];
+    
+    for (const path of commonPaths) {
+      try {
+        require('fs').accessSync(path);
+        console.log(`Found Stockfish at: ${path}`);
+        return path;
+      } catch (e) {
+        // Path doesn't exist, try next one
+      }
+    }
+    
+    // Default fallback
+    console.warn('Stockfish not found in common paths, using default: /usr/games/stockfish');
     return '/usr/games/stockfish';
   }
 }

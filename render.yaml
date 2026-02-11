@@ -6,7 +6,9 @@ services:
     buildCommand: |
       apt-get update
       apt-get install -y stockfish
-      echo "Stockfish path: $(which stockfish)"
+      STOCKFISH_PATH=$(which stockfish)
+      echo "Stockfish found at: $STOCKFISH_PATH"
+      chmod +x $STOCKFISH_PATH
       npm install --production=false
       cd backend && npm install && cd ..
       npm run build
