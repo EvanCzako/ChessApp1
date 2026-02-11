@@ -7,6 +7,9 @@ mkdir -p ./bin
 # Download Stockfish tar
 curl -L -o ./bin/stockfish.tar https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64-avx2.tar
 
+# List contents of the tar without extracting
+tar -tf ./bin/stockfish.tar
+
 # Extract tar into bin
 tar -xf ./bin/stockfish.tar -C ./bin
 
