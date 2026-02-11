@@ -14,7 +14,8 @@ tar -tf ./bin/stockfish.tar
 tar -xf ./bin/stockfish.tar -C ./bin
 
 # Find the binary
-EXTRACTED_BINARY=$(find ./bin -type f -name "stockfish" | head -n 1)
+EXTRACTED_BINARY=$(find ./bin -type f -perm /111 -name "stockfish" | head -n 1)
+
 
 if [ -z "$EXTRACTED_BINARY" ]; then
   echo "Error: Could not find extracted Stockfish binary"
