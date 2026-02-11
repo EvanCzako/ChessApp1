@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
 set -e
 
+# Make sure bin folder exists
 mkdir -p ../bin
 
-# Download Stockfish Linux zip (direct link)
-curl -L https://github.com/official-stockfish/Stockfish/releases/download/sf_15.1/stockfish_15.1_linux_x64_bmi2.zip -o sf.zip
+# Download Stockfish Linux binary (direct link)
+curl -L -o ../bin/stockfish.tar https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64-avx2.tar
 
-# Unzip into bin folder
-unzip -o sf.zip -d ../bin
+# Extract the tar into the bin folder
+tar -xf ../bin/stockfish.tar -C ../bin
 
-# The executable inside the zip
-chmod +x ../bin/stockfish_15.1_linux_x64_bmi2
+# The tar usually contains a file named 'stockfish-ubuntu-x86-64-avx2'
+# Make it executable
+chmod +x ../bin/stockfish-ubuntu-x86-64-avx2
 
-# Rename to 'stockfish' for simplicity
-mv ../bin/stockfish_15.1_linux_x64_bmi2 ../bin/stockfish
+# Rename to simple 'stockfish' for your backend paths
+mv ../bin/stockfish-ubuntu-x86-64-avx2 ../bin/stockfish
 
 # Clean up
-rm sf.zip
+rm ../bin/stockfish.tar
 
 echo "Stockfish installed to ../bin/stockfish"
