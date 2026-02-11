@@ -77,12 +77,13 @@ function getStockfishPath() {
   } else {
     // Linux - try project stockfish folder first, then common installation paths
     const linuxPaths = [
-      path.join(projectRoot, 'bin', 'stockfish'), // <--- added for Render
+      path.join(__dirname, 'bin', 'stockfish'), // <-- this fixes Render
       path.join(projectRoot, 'stockfish', 'stockfish'),
       '/usr/games/stockfish',
       '/usr/bin/stockfish',
       '/usr/local/bin/stockfish'
     ];
+
 
     
     for (const p of linuxPaths) {
