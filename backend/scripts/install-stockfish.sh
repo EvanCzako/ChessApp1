@@ -21,6 +21,8 @@ chmod +x "$EXTRACTED_BINARY"
 # Copy / rename to a flat, consistent name
 cp "$EXTRACTED_BINARY" ./bin/stockfish
 
+ls -l ./bin/stockfish
+
 # Clean up tar
 rm ./bin/stockfish.tar
 
