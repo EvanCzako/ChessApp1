@@ -1,9 +1,7 @@
 services:
   - type: web
     name: chess-app
-    env: node
-    buildCommand: apt-get update && apt-get install -y stockfish && npm install --production=false && cd backend && npm install && cd .. && npm run build
-    startCommand: cd backend && npm start
+    env: docker
     envVars:
       - key: PORT
         value: 3001

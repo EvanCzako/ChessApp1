@@ -1,7 +1,7 @@
-FROM node:18-alpine
+FROM node:18-slim
 
 # Install Stockfish engine
-RUN apk add --no-cache stockfish
+RUN apt-get update && apt-get install -y --no-install-recommends stockfish && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
