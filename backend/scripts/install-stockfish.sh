@@ -1,23 +1,30 @@
 #!/usr/bin/env bash
 set -e
 
-# Make sure bin folder exists
+# Ensure bin folder exists
 mkdir -p ../bin
 
-# Download Stockfish Linux binary (direct link)
+# Download Stockfish Linux tar (direct GitHub release)
 curl -L -o ../bin/stockfish.tar https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64-avx2.tar
 
-# Extract the tar into the bin folder
+# Extract tar into bin folder
 tar -xf ../bin/stockfish.tar -C ../bin
 
-# The tar usually contains a file named 'stockfish-ubuntu-x86-64-avx2'
+# Find the extracted binary (it may be nested in a folder)
+EXTRACTED_BINARY=$(find ../bin -type f -name "stockfish-ubuntu-x86-64-avx2" | head -n 1)
+
+if [ -z "$EXTRACTED_BINARY" ]; then
+  echo "Error: Could not find extracted Stockfish binary"
+  exit 1
+fi
+
 # Make it executable
-chmod +x ../bin/stockfish-ubuntu-x86-64-avx2
+chmod +x "$EXTRACTED_BINARY"
 
-# Rename to simple 'stockfish' for your backend paths
-mv ../bin/stockfish-ubuntu-x86-64-avx2 ../bin/stockfish
+# Rename to simple 'stockfish' for consistent backend path
+mv "$EXTRACTED_BINARY" ../bin/stockfish
 
-# Clean up
+# Clean up tar
 rm ../bin/stockfish.tar
 
 echo "Stockfish installed to ../bin/stockfish"
