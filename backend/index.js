@@ -30,12 +30,12 @@ function getStockfishPath() {
   const projectRoot = path.join(__dirname, '..');
   
   if (platform === 'win32') {
-    // Windows - try project stockfish folder with specific executable name, then common paths
+    // Windows - try project stockfish-windows folder for local development
     const winPaths = [
-      path.join(projectRoot, 'stockfish', 'stockfish-windows.exe'),
-      path.join(projectRoot, 'stockfish', 'stockfish-windows-x86-64-avx2.exe'),
-      path.join(projectRoot, 'stockfish', 'stockfish.exe'),
-      path.join(projectRoot, 'stockfish', 'stockfish'),
+      path.join(projectRoot, 'stockfish-windows', 'stockfish-windows.exe'),
+      path.join(projectRoot, 'stockfish-windows', 'stockfish-windows-x86-64-avx2.exe'),
+      path.join(projectRoot, 'stockfish-windows', 'stockfish.exe'),
+      path.join(projectRoot, 'stockfish-windows', 'stockfish'),
       'C:\\Code\\stockfish\\stockfish-windows.exe',
       'C:\\Program Files\\stockfish\\stockfish.exe',
       'C:\\Program Files (x86)\\stockfish\\stockfish.exe',

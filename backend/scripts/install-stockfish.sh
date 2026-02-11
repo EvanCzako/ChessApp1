@@ -1,29 +1,26 @@
+# create bin folder
 mkdir -p ./bin
 
-# Download tar
-curl -L -o ./bin/stockfish.tar https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64-avx2.tar
+echo "Building Stockfish (generic x86-64) ..."
 
-# Extract tar
-tar -xf ./bin/stockfish.tar -C ./bin
+# clone shallow for speed
+git clone --depth 1 https://github.com/official-stockfish/Stockfish.git ./stockfish-src
 
-# Path to the binary inside extracted folder
-EXTRACTED_BINARY=./bin/stockfish/stockfish-ubuntu-x86-64-avx2
+cd ./stockfish-src/src
 
-if [ ! -f "$EXTRACTED_BINARY" ]; then
-    echo "Error: Stockfish binary not found at expected path: $EXTRACTED_BINARY"
-    ls -R ./bin
-    exit 1
-fi
+# build MOST compatible version (no AVX/AVX2)
+make build ARCH=x86-64
 
-# Make it executable
-chmod +x "$EXTRACTED_BINARY"
+# move compiled binary to your backend bin
+mv stockfish ../../bin/stockfish
 
-# Copy / rename to a flat, consistent name
-cp "$EXTRACTED_BINARY" ./bin/stockfish
+cd ../../
+
+# cleanup source to keep deploy small
+rm -rf ./stockfish-src
+
+# ensure executable
+chmod 755 ./bin/stockfish
 
 ls -l ./bin/stockfish
-
-# Clean up tar
-rm ./bin/stockfish.tar
-
-echo "Stockfish installed to ./bin/stockfish"
+echo "Stockfish compiled and installed to ./bin/stockfish"
