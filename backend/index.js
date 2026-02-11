@@ -22,6 +22,11 @@ app.use(express.json());
 
 // Serve static files from the frontend build
 const distPath = path.join(__dirname, '../dist');
+console.log(`Attempting to serve static files from: ${distPath}`);
+console.log(`Static folder exists: ${fs.existsSync(distPath)}`);
+if (fs.existsSync(distPath)) {
+  console.log(`Contents: ${fs.readdirSync(distPath).join(', ')}`);
+}
 app.use(express.static(distPath));
 
 // Get Stockfish executable path based on platform
