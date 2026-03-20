@@ -1,11 +1,14 @@
 import React from 'react';
+import { Chess } from 'chess.js';
 import { PGNNavigator } from './PGNNavigator';
+import { detectGameStatus, getDrawDetails } from '../utils/drawDetection';
 import '../styles/GameInfo.css';
 
 type Difficulty = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
 type PlayerColor = 'white' | 'black';
 
 interface GameInfoProps {
+  game: Chess;
   currentMoveIndex: number;
   moves: Array<{ san: string; fen: string }>;
   difficulty: Difficulty;
@@ -20,6 +23,7 @@ interface GameInfoProps {
 }
 
 export const GameInfo: React.FC<GameInfoProps> = ({
+  game,
   currentMoveIndex,
   moves,
   difficulty,
@@ -32,6 +36,9 @@ export const GameInfo: React.FC<GameInfoProps> = ({
   onNavigate,
   onResetFromHere,
 }) => {
+  const gameStatus = detectGameStatus(game);
+  const drawDetails = getDrawDetails(game);
+
   return (
     <div className="game-info">
       <div className="controls-top">
@@ -78,6 +85,28 @@ export const GameInfo: React.FC<GameInfoProps> = ({
           <span className="computer-thinking">Computer is thinking...</span>
         )}
       </div>
+
+      {gameStatus.isGameOver && (
+        <div className={`game-status ${gameStatus.reason || 'unknown'}`}>
+          <div className="status-message">{gameStatus.message}</div>
+          {drawDetails.length > 0 && (
+            <div className="draw-details">
+              {drawDetails.map((detail, idx) => (
+                <div key={idx} className="detail-item">{detail}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!gameStatus.isGameOver && drawDetails.length > 0 && (
+        <div className="draw-warning">
+          <div className="warning-title">Draw Conditions:</div>
+          {drawDetails.map((detail, idx) => (
+            <div key={idx} className="warning-item">{detail}</div>
+          ))}
+        </div>
+      )}
 
       {moves.length > 0 && (
         <PGNNavigator

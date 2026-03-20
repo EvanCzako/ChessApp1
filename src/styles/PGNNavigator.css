@@ -130,6 +130,17 @@
   border-color: var(--primary-color);
 }
 
+.game-result {
+  margin-left: 0.5rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #ffd700;
+  background-color: rgba(255, 215, 0, 0.1);
+  padding: 0.35rem 0.65rem;
+  border-radius: 4px;
+  border: 1px solid #ffd700;
+}
+
 .reset-section {
   padding: 1rem 1.25rem;
   background-color: #3a3a2a;

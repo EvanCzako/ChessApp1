@@ -1,6 +1,7 @@
 import React from 'react';
 import { Chess } from 'chess.js';
 import { PromotionDialog } from './PromotionDialog';
+import { detectGameStatus } from '../utils/drawDetection';
 import '../styles/Chessboard.css';
 
 // Map chess piece types to their file names
@@ -62,7 +63,25 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
       });
 
       if (move) {
-        onMove(move.san);
+        // Check game status after move to add appropriate notation
+        const gameStatus = detectGameStatus(game);
+        let moveNotation = move.san;
+        
+        // Append game-ending notation
+        if (gameStatus.isGameOver) {
+          if (gameStatus.reason === 'checkmate') {
+            // chess.js already adds # for checkmate, but ensure it's present
+            if (!moveNotation.includes('#')) {
+              moveNotation += '#';
+            }
+          } else if (gameStatus.reason === 'stalemate') {
+            moveNotation += ' ½-½';
+          } else if (gameStatus.reason === 'repetition' || gameStatus.reason === 'move-rule-50' || gameStatus.reason === 'insufficient-material') {
+            moveNotation += ' ½-½';
+          }
+        }
+        
+        onMove(moveNotation);
       }
     } catch {
       // Invalid move, silently fail

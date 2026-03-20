@@ -3,6 +3,7 @@ import { Chess } from 'chess.js'
 import { Chessboard } from './components/Chessboard'
 import { GameInfo } from './components/GameInfo'
 import { evaluateMoves } from './utils/stockfishEval'
+import { detectGameStatus } from './utils/drawDetection'
 import './App.css'
 
 interface MoveRecord {
@@ -18,6 +19,7 @@ function App() {
   const [moves, setMoves] = useState<MoveRecord[]>([]);
   const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
   const [isComputerThinking, setIsComputerThinking] = useState(false);
+  const [isGameTerminal, setIsGameTerminal] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>('9');
   const [playerColor, setPlayerColor] = useState<PlayerColor>('white');
   const [chessboardSize, setChessboardSize] = useState<number | undefined>();
@@ -62,7 +64,7 @@ function App() {
     return g;
   })();
 
-  const isDisabled = currentMoveIndex !== moves.length - 1 || isComputerThinking;
+  const isDisabled = currentMoveIndex !== moves.length - 1 || isComputerThinking || isGameTerminal;
 
   // Computer move after player moves
   useEffect(() => {
@@ -71,6 +73,7 @@ function App() {
     // 2. Not in a pseudo-move state (loaded FEN position)
     // 3. It's the computer's turn
     // 4. We're not already thinking
+    // 5. Game is not over
     const computerColor = playerColor === 'white' ? 'b' : 'w';
     const isPseudoMoveState = moves.length > 0 && moves[0].san.startsWith('(') && currentMoveIndex === 0;
     
@@ -78,11 +81,12 @@ function App() {
       currentMoveIndex === moves.length - 1 &&
       !isPseudoMoveState &&
       gameAtPosition.turn() === computerColor &&
-      !isComputerThinking
+      !isComputerThinking &&
+      !isGameTerminal
     ) {
       makeComputerMove();
     }
-  }, [currentMoveIndex, moves.length, playerColor]);
+  }, [currentMoveIndex, moves.length, playerColor, isGameTerminal]);
 
   // Measure main-content and calculate chessboard size
   useEffect(() => {
@@ -119,6 +123,13 @@ function App() {
   const makeComputerMove = async () => {
     setIsComputerThinking(true);
     try {
+      // Check if game is already over
+      const gameStatus = detectGameStatus(gameAtPosition);
+      if (gameStatus.isGameOver) {
+        setIsComputerThinking(false);
+        return;
+      }
+
       const legalMoves = gameAtPosition.moves({ verbose: false });
       
       if (legalMoves.length === 0) {
@@ -158,14 +169,34 @@ function App() {
       // Select the last move (which is the randomly selected rank)
       const selectedMove = evaluations[evaluations.length - 1];
 
+      // Create a copy of the game to check the result after this move
+      const gameCopy = new Chess(gameAtPosition.fen());
+      gameCopy.move(selectedMove.move);
+      const moveGameStatus = detectGameStatus(gameCopy);
+
+      // Enhance move notation with game-ending symbols
+      let moveNotation = selectedMove.move;
+      if (moveGameStatus.isGameOver) {
+        if (moveGameStatus.reason === 'checkmate') {
+          if (!moveNotation.includes('#')) {
+            moveNotation += '#';
+          }
+        } else if (moveGameStatus.reason === 'stalemate') {
+          moveNotation += ' ½-½';
+        } else if (moveGameStatus.reason === 'repetition' || moveGameStatus.reason === 'move-rule-50' || moveGameStatus.reason === 'insufficient-material') {
+          moveNotation += ' ½-½';
+        }
+      }
+
       // Make the move immediately
       const newMoves = moves.slice(0, currentMoveIndex + 1);
       newMoves.push({
-        san: selectedMove.move,
+        san: moveNotation,
         fen: gameAtPosition.fen(),
       });
       setMoves(newMoves);
       setCurrentMoveIndex(newMoves.length - 1);
+      setIsGameTerminal(moveGameStatus.isGameOver);
       setIsComputerThinking(false);
     } catch (error) {
       console.error('Error in computer move:', error);
@@ -175,13 +206,49 @@ function App() {
 
   const handleMove = (moveNotation: string) => {
     const newMoves = moves.slice(0, currentMoveIndex + 1);
+    
+    // Reconstruct the position BEFORE this move to save the correct FEN
+    let preMoveGame = new Chess();
+    
+    if (moves.length > 0 && moves[0].san.startsWith('(')) {
+      // Special case: position was loaded from FEN
+      preMoveGame = new Chess(moves[0].fen);
+      for (let i = 1; i <= currentMoveIndex; i++) {
+        if (i < moves.length) {
+          try {
+            preMoveGame.move(moves[i].san.split(' ')[0]);
+          } catch {
+            break;
+          }
+        }
+      }
+    } else {
+      // Standard replay from starting position
+      for (let i = 0; i <= currentMoveIndex; i++) {
+        if (i < moves.length) {
+          try {
+            preMoveGame.move(moves[i].san.split(' ')[0]);
+          } catch {
+            break;
+          }
+        }
+      }
+    }
+    
     const newMove: MoveRecord = {
       san: moveNotation,
-      fen: gameAtPosition.fen(),
+      fen: preMoveGame.fen(),
     };
     newMoves.push(newMove);
+    
+    // Check if this move ends the game
+    const postMoveGame = new Chess(preMoveGame.fen());
+    postMoveGame.move(moveNotation.split(' ')[0]); // Remove result notation if present
+    const gameStatus = detectGameStatus(postMoveGame);
+    
     setMoves(newMoves);
     setCurrentMoveIndex(newMoves.length - 1);
+    setIsGameTerminal(gameStatus.isGameOver);
   };
 
   const handleNavigate = (moveIndex: number) => {
@@ -192,6 +259,17 @@ function App() {
     const newMoves = moves.slice(0, moveIndex + 1);
     setMoves(newMoves);
     setCurrentMoveIndex(moveIndex);
+    
+    // Check if the position we're resetting to is terminal
+    if (newMoves.length > 0) {
+      const lastMove = newMoves[newMoves.length - 1];
+      const checkGame = new Chess(lastMove.fen);
+      checkGame.move(lastMove.san.split(' ')[0]);
+      const status = detectGameStatus(checkGame);
+      setIsGameTerminal(status.isGameOver);
+    } else {
+      setIsGameTerminal(false);
+    }
   };
 
   const handleNewGame = () => {
@@ -199,6 +277,7 @@ function App() {
     setMoves([]);
     setCurrentMoveIndex(-1);
     setIsComputerThinking(false);
+    setIsGameTerminal(false);
     setGameResetSignal((prev) => prev + 1);
   };
 
@@ -214,6 +293,7 @@ function App() {
     }]);
     setCurrentMoveIndex(0);
     setIsComputerThinking(false);
+    setIsGameTerminal(false);
     setGameResetSignal((prev) => prev + 1);
   };
 
@@ -228,6 +308,7 @@ function App() {
     setMoves([]);
     setCurrentMoveIndex(-1);
     setIsComputerThinking(false);
+    setIsGameTerminal(false);
     setGameResetSignal((prev) => prev + 1);
   };
 
@@ -243,6 +324,7 @@ function App() {
           gameResetSignal={gameResetSignal}
         />
         <GameInfo
+          game={gameAtPosition}
           currentMoveIndex={currentMoveIndex}
           moves={moves}
           difficulty={difficulty}
