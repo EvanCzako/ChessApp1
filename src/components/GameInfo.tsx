@@ -38,53 +38,21 @@ export const GameInfo: React.FC<GameInfoProps> = ({
 }) => {
   const gameStatus = detectGameStatus(game);
   const drawDetails = getDrawDetails(game);
+  const isAtEnd = currentMoveIndex === moves.length - 1;
+
+  const handleResetClick = () => {
+    onResetFromHere(currentMoveIndex);
+  };
 
   return (
     <div className="game-info">
-      <div className="controls-top">
-        <button onClick={onNewGame} className="new-game-btn">
-          New Game
-        </button>
-        <button onClick={onLoadPawnPromotion} className="new-game-btn">
-          Load Pawn Promotion
-        </button>
-        <div className="color-selector">
-          <label htmlFor="color">Play as:</label>
-          <select
-            id="color"
-            className="color-dropdown"
-            value={playerColor}
-            onChange={(e) => onPlayerColorChange(e.target.value as PlayerColor)}
-            disabled={isComputerThinking}
-          >
-            <option value="white">White</option>
-            <option value="black">Black</option>
-          </select>
-        </div>
-        <div className="difficulty-selector">
-          <label htmlFor="difficulty">Difficulty:</label>
-          <select
-            id="difficulty"
-            className="difficulty-dropdown"
-            value={difficulty}
-            onChange={(e) => onDifficultyChange(e.target.value as Difficulty)}
-            disabled={isComputerThinking}
-          >
-            <option value="1">1 - Easiest</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9 - Hardest</option>
-          </select>
-        </div>
-        {isComputerThinking && (
-          <span className="computer-thinking">Computer is thinking...</span>
-        )}
-      </div>
+      {moves.length > 0 && (
+        <PGNNavigator
+          currentMoveIndex={currentMoveIndex}
+          moves={moves}
+          onNavigate={onNavigate}
+        />
+      )}
 
       {gameStatus.isGameOver && (
         <div className={`game-status ${gameStatus.reason || 'unknown'}`}>
@@ -99,14 +67,62 @@ export const GameInfo: React.FC<GameInfoProps> = ({
         </div>
       )}
 
-      {moves.length > 0 && (
-        <PGNNavigator
-          currentMoveIndex={currentMoveIndex}
-          moves={moves}
-          onNavigate={onNavigate}
-          onResetFromHere={onResetFromHere}
-        />
-      )}
+      <div className="controls-top">
+        <div className="controls-left">
+          <button onClick={onNewGame} className="new-game-btn">
+            New Game
+          </button>
+          <button onClick={onLoadPawnPromotion} className="new-game-btn">
+            Load Pawn Promotion
+          </button>
+          <div className="color-selector">
+            <label htmlFor="color">Play as:</label>
+            <select
+              id="color"
+              className="color-dropdown"
+              value={playerColor}
+              onChange={(e) => onPlayerColorChange(e.target.value as PlayerColor)}
+              disabled={isComputerThinking}
+            >
+              <option value="white">White</option>
+              <option value="black">Black</option>
+            </select>
+          </div>
+          <div className="difficulty-selector">
+            <label htmlFor="difficulty">Difficulty:</label>
+            <select
+              id="difficulty"
+              className="difficulty-dropdown"
+              value={difficulty}
+              onChange={(e) => onDifficultyChange(e.target.value as Difficulty)}
+              disabled={isComputerThinking}
+            >
+              <option value="1">1 - Easiest</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9 - Hardest</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="controls-right">
+          <button 
+            onClick={handleResetClick} 
+            className="reset-from-here-btn"
+            disabled={isAtEnd || moves.length === 0}
+          >
+            Reset from Here
+          </button>
+          {isComputerThinking && (
+            <span className="computer-thinking">Computer is thinking...</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

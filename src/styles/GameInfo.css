@@ -14,7 +14,7 @@
 /* Landscape orientation adjustments */
 @media (orientation: landscape) {
   .game-info {
-    width: max(200px, 30%);
+    width: max(250px, 45%);
     min-width: auto;
     max-width: none;
     max-height: 100%;
@@ -37,7 +37,8 @@
 /* Top controls styling for sidebar layout */
 .game-info .controls-top {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: flex-start;
   gap: 1rem;
   padding: 1.25rem;
   background-color: #2a2a2a;
@@ -45,8 +46,27 @@
   border: 1px solid #444;
 }
 
+.game-info .controls-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+  width: 50%;
+}
+
+.game-info .controls-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
 .game-info .new-game-btn {
   width: 100%;
+}
+
+.game-info .controls-left .new-game-btn:nth-child(2) {
+  display: none;
 }
 
 .game-info .color-selector,
@@ -104,6 +124,50 @@
   border-radius: 4px;
   text-align: center;
   font-size: clamp(0.75rem, 1.5vw, 1.2rem);
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.game-info .reset-from-here-btn {
+  padding: 0.75rem 1.75rem;
+  font-size: clamp(0.75rem, 1.5vw, 1.2rem);
+  font-weight: 600;
+  background-color: var(--secondary-color);
+  color: #1a1a1a;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+  white-space: nowrap;
+}
+
+.game-info .reset-from-here-btn:hover:not(:disabled) {
+  background-color: var(--secondary-hover);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+  transform: translateY(-2px);
+}
+
+.game-info .reset-from-here-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(255, 193, 7, 0.3);
+}
+
+.game-info .reset-from-here-btn:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+  transform: none;
+}
+
+.game-info .controls-right .computer-thinking {
+  padding: 0.5rem 0.75rem;
+  background-color: rgba(100, 181, 246, 0.1);
+  border-left: 3px solid var(--accent-color);
+  border-radius: 4px;
+  text-align: center;
+  font-size: clamp(0.65rem, 1.5vw, 1rem);
   font-weight: 600;
   color: var(--text-light);
 }
