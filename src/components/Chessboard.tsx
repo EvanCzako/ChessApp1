@@ -1,5 +1,6 @@
 import React from 'react';
 import { Chess } from 'chess.js';
+import { PromotionDialog } from './PromotionDialog';
 import '../styles/Chessboard.css';
 
 // Map chess piece types to their file names
@@ -36,6 +37,41 @@ interface ChessboardProps {
 export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove, chessboardSize, playerColor = 'white' }) => {
   const [dragState, setDragState] = React.useState<DragState>({ fromSquare: null, piece: null });
   const [legalMoves, setLegalMoves] = React.useState<string[]>([]);
+  const [promotionPending, setPromotionPending] = React.useState<{ fromSquare: string; toSquare: string; pawnColor: 'white' | 'black' } | null>(null);
+
+  const isPromotionMove = (fromSquare: string, toSquare: string): boolean => {
+    const piece = game.get(fromSquare as any);
+    if (!piece || piece.type !== 'p') return false;
+    // White pawn moving to rank 8, or black pawn moving to rank 1
+    const toRank = parseInt(toSquare[1]);
+    return (piece.color === 'w' && toRank === 8) || (piece.color === 'b' && toRank === 1);
+  };
+
+  const executeMove = (fromSquare: string, toSquare: string, promotion?: 'q' | 'r' | 'b' | 'n') => {
+    try {
+      const move = game.move({
+        from: fromSquare,
+        to: toSquare,
+        ...(promotion && { promotion }),
+      });
+
+      if (move) {
+        onMove(move.san);
+      }
+    } catch {
+      // Invalid move, silently fail
+    }
+
+    setDragState({ fromSquare: null, piece: null });
+    setLegalMoves([]);
+  };
+
+  const handlePromotionSelect = (promotion: 'q' | 'r' | 'b' | 'n') => {
+    if (!promotionPending) return;
+
+    executeMove(promotionPending.fromSquare, promotionPending.toSquare, promotion);
+    setPromotionPending(null);
+  };
 
   const handlePieceDragStart = (e: React.DragEvent<HTMLDivElement>, square: string) => {
     if (isDisabled) {
@@ -79,23 +115,17 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
 
     if (!dragState.fromSquare) return;
 
-    try {
-      const move = game.move({
-        from: dragState.fromSquare,
-        to: toSquare,
-        promotion: 'q', // Default to queen for promotions
-      });
-
-      if (move) {
-        // Call parent callback with move notation
-        onMove(move.san);
-      }
-    } catch {
-      // Invalid move, silently fail
+    // Check if this move would trigger a promotion
+    if (isPromotionMove(dragState.fromSquare, toSquare)) {
+      const piece = game.get(dragState.fromSquare as any);
+      const pawnColor = piece?.color === 'w' ? 'white' : 'black';
+      setPromotionPending({ fromSquare: dragState.fromSquare, toSquare, pawnColor });
+      setDragState({ fromSquare: null, piece: null });
+      setLegalMoves([]);
+      return;
     }
 
-    setDragState({ fromSquare: null, piece: null });
-    setLegalMoves([]);
+    executeMove(dragState.fromSquare, toSquare);
   };
 
   const handleSquareDragLeave = () => {
@@ -128,22 +158,17 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
 
     // If a piece is already selected and tapping a legal move, make the move
     if (dragState.fromSquare && legalMoves.includes(square)) {
-      try {
-        const move = game.move({
-          from: dragState.fromSquare,
-          to: square,
-          promotion: 'q', // Default to queen for promotions
-        });
-
-        if (move) {
-          onMove(move.san);
-        }
-      } catch {
-        // Invalid move, silently fail
+      // Check if this move would trigger a promotion
+      if (isPromotionMove(dragState.fromSquare, square)) {
+        const piece = game.get(dragState.fromSquare as any);
+        const pawnColor = piece?.color === 'w' ? 'white' : 'black';
+        setPromotionPending({ fromSquare: dragState.fromSquare, toSquare: square, pawnColor });
+        setDragState({ fromSquare: null, piece: null });
+        setLegalMoves([]);
+        return;
       }
 
-      setDragState({ fromSquare: null, piece: null });
-      setLegalMoves([]);
+      executeMove(dragState.fromSquare, square);
       return;
     }
 
@@ -249,19 +274,17 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
     const toSquare = String.fromCharCode(97 + file) + (rank + 1);
 
     if (legalMoves.includes(toSquare)) {
-      try {
-        const move = game.move({
-          from: dragState.fromSquare,
-          to: toSquare,
-          promotion: 'q',
-        });
-
-        if (move) {
-          onMove(move.san);
-        }
-      } catch {
-        // Invalid move
+      // Check if this move would trigger a promotion
+      if (isPromotionMove(dragState.fromSquare, toSquare)) {
+        const piece = game.get(dragState.fromSquare as any);
+        const pawnColor = piece?.color === 'w' ? 'white' : 'black';
+        setPromotionPending({ fromSquare: dragState.fromSquare, toSquare, pawnColor });
+        setDragState({ fromSquare: null, piece: null });
+        setLegalMoves([]);
+        return;
       }
+
+      executeMove(dragState.fromSquare, toSquare);
     }
 
     setDragState({ fromSquare: null, piece: null });
@@ -332,6 +355,11 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
       <div className="board" onTouchEnd={handleBoardTouchEnd}>
         {renderBoard()}
       </div>
+      <PromotionDialog
+        isOpen={promotionPending !== null}
+        pawnColor={promotionPending?.pawnColor || 'white'}
+        onSelect={handlePromotionSelect}
+      />
     </div>
   );
 };

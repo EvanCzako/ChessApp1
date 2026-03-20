@@ -12,6 +12,7 @@ interface GameInfoProps {
   playerColor: PlayerColor;
   isComputerThinking: boolean;
   onNewGame: () => void;
+  onLoadPawnPromotion: () => void;
   onDifficultyChange: (difficulty: Difficulty) => void;
   onPlayerColorChange: (color: PlayerColor) => void;
   onNavigate: (moveIndex: number) => void;
@@ -25,6 +26,7 @@ export const GameInfo: React.FC<GameInfoProps> = ({
   playerColor,
   isComputerThinking,
   onNewGame,
+  onLoadPawnPromotion,
   onDifficultyChange,
   onPlayerColorChange,
   onNavigate,
@@ -35,6 +37,9 @@ export const GameInfo: React.FC<GameInfoProps> = ({
       <div className="controls-top">
         <button onClick={onNewGame} className="new-game-btn">
           New Game
+        </button>
+        <button onClick={onLoadPawnPromotion} className="new-game-btn">
+          Load Pawn Promotion
         </button>
         <div className="color-selector">
           <label htmlFor="color">Play as:</label>

@@ -25,12 +25,39 @@ function App() {
 
   // Reconstruct game at current position
   const gameAtPosition = (() => {
-    const g = new Chess();
-    for (let i = 0; i <= currentMoveIndex; i++) {
-      if (i < moves.length) {
-        g.move(moves[i].san);
+    // If no moves have been made, use the game state directly (for FEN loading)
+    if (currentMoveIndex === -1 && moves.length === 0) {
+      return game;
+    }
+    
+    let g = new Chess();
+    
+    // Check if first move is a pseudo-move (initial position marker)
+    if (moves.length > 0 && moves[0].san.startsWith('(')) {
+      g = new Chess(moves[0].fen);
+      // Replay moves starting from index 1
+      for (let i = 1; i <= currentMoveIndex; i++) {
+        if (i < moves.length) {
+          try {
+            g.move(moves[i].san);
+          } catch {
+            break;
+          }
+        }
+      }
+    } else {
+      // Standard replay from starting position
+      for (let i = 0; i <= currentMoveIndex; i++) {
+        if (i < moves.length) {
+          try {
+            g.move(moves[i].san);
+          } catch {
+            break;
+          }
+        }
       }
     }
+    
     return g;
   })();
 
@@ -40,12 +67,14 @@ function App() {
   useEffect(() => {
     // Only make computer move if:
     // 1. We're at the latest move
-    // 2. It's the computer's turn
-    // 3. We're not already thinking
+    // 2. At least one move has been made (currentMoveIndex >= 0)
+    // 3. It's the computer's turn
+    // 4. We're not already thinking
     const computerColor = playerColor === 'white' ? 'b' : 'w';
     
     if (
       currentMoveIndex === moves.length - 1 &&
+      currentMoveIndex >= 0 &&
       gameAtPosition.turn() === computerColor &&
       !isComputerThinking
     ) {
@@ -170,6 +199,20 @@ function App() {
     setIsComputerThinking(false);
   };
 
+  const handleLoadPawnPromotion = () => {
+    // Load a position where white pawn is on a7, ready to promote
+    const promotionFen = '8/P7/8/8/8/8/5k2/7K w - - 0 1';
+    const g = new Chess(promotionFen);
+    setGame(g);
+    // Add initial position to moves so subsequent moves can be properly tracked
+    setMoves([{
+      san: '(initial)',
+      fen: promotionFen,
+    }]);
+    setCurrentMoveIndex(0);
+    setIsComputerThinking(false);
+  };
+
   const handleDifficultyChange = (newDifficulty: Difficulty) => {
     setDifficulty(newDifficulty);
   };
@@ -200,6 +243,7 @@ function App() {
           playerColor={playerColor}
           isComputerThinking={isComputerThinking}
           onNewGame={handleNewGame}
+          onLoadPawnPromotion={handleLoadPawnPromotion}
           onDifficultyChange={handleDifficultyChange}
           onPlayerColorChange={handlePlayerColorChange}
           onNavigate={handleNavigate}
