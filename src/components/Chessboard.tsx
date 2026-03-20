@@ -23,6 +23,9 @@ const getPieceImage = (type: string, color: string) => {
 interface DragState {
   fromSquare: string | null;
   piece: string | null;
+  pieceColor?: 'w' | 'b';
+  cursorX?: number;
+  cursorY?: number;
   touchStartX?: number;
   touchStartY?: number;
 }
@@ -40,6 +43,7 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
   const [dragState, setDragState] = React.useState<DragState>({ fromSquare: null, piece: null });
   const [legalMoves, setLegalMoves] = React.useState<string[]>([]);
   const [promotionPending, setPromotionPending] = React.useState<{ fromSquare: string; toSquare: string; pawnColor: 'white' | 'black' } | null>(null);
+  const boardRef = React.useRef<HTMLDivElement>(null);
 
   // Close promotion dialog when game is reset
   React.useEffect(() => {
@@ -124,15 +128,31 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
     const moves = game.moves({ square: square as any, verbose: true });
     const legalSquares = moves.map((m: any) => m.to);
 
-    setDragState({ fromSquare: square, piece: piece.type });
+    setDragState({ 
+      fromSquare: square, 
+      piece: piece.type,
+      pieceColor: piece.color,
+      cursorX: e.clientX,
+      cursorY: e.clientY 
+    });
     setLegalMoves(legalSquares);
 
     e.dataTransfer.effectAllowed = 'move';
+    // Create a transparent drag image to hide the default browser drag image
+    const emptyImage = new Image();
+    e.dataTransfer.setDragImage(emptyImage, 0, 0);
   };
 
   const handleSquareDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    
+    // Update drag state with current cursor position
+    setDragState(prev => ({ 
+      ...prev, 
+      cursorX: e.clientX, 
+      cursorY: e.clientY 
+    }));
   };
 
   const handleSquareDrop = (e: React.DragEvent<HTMLDivElement>, toSquare: string) => {
@@ -151,6 +171,16 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
     }
 
     executeMove(dragState.fromSquare, toSquare);
+  };
+
+  const handleBoardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (dragState.fromSquare) {
+      setDragState(prev => ({
+        ...prev,
+        cursorX: e.clientX,
+        cursorY: e.clientY
+      }));
+    }
   };
 
   const handleSquareDragLeave = () => {
@@ -241,10 +271,24 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
     setDragState({ 
       fromSquare: square, 
       piece: piece.type,
+      pieceColor: piece.color,
+      cursorX: touch.clientX,
+      cursorY: touch.clientY,
       touchStartX: touch.clientX,
       touchStartY: touch.clientY
     });
     setLegalMoves(legalSquares);
+  };
+
+  const handleBoardTouchMove = (e: React.TouchEvent) => {
+    if (!dragState.fromSquare) return;
+    
+    const touch = e.touches[0];
+    setDragState(prev => ({
+      ...prev,
+      cursorX: touch.clientX,
+      cursorY: touch.clientY
+    }));
   };
 
   const handleBoardTouchEnd = (e: React.TouchEvent) => {
@@ -356,7 +400,7 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
           >
             {piece && (
               <img
-                className={`piece ${piece.color === 'w' ? 'white' : 'black'}`}
+                className={`piece ${piece.color === 'w' ? 'white' : 'black'} ${isFromSquare ? 'dragging' : ''}`}
                 src={getPieceImage(piece.type, piece.color)}
                 alt={`${piece.color === 'w' ? 'white' : 'black'} ${piece.type}`}
                 draggable
@@ -372,14 +416,43 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
     return squares;
   };
 
+  const renderDragGhost = () => {
+    if (!dragState.fromSquare || !dragState.piece || dragState.cursorX === undefined || dragState.cursorY === undefined) {
+      return null;
+    }
+
+    return (
+      <div
+        className="drag-ghost"
+        style={{
+          left: `${dragState.cursorX}px`,
+          top: `${dragState.cursorY}px`,
+        }}
+      >
+        <img
+          src={getPieceImage(dragState.piece, dragState.pieceColor || 'w')}
+          alt="dragging piece"
+          className="drag-ghost-image"
+        />
+      </div>
+    );
+  };
+
   return (
     <div 
       className={`chessboard-container ${isDisabled ? 'disabled' : ''}`}
       style={chessboardSize ? { width: chessboardSize, height: chessboardSize } : undefined}
     >
-      <div className="board" onTouchEnd={handleBoardTouchEnd}>
+      <div 
+        ref={boardRef}
+        className="board" 
+        onTouchEnd={handleBoardTouchEnd}
+        onTouchMove={handleBoardTouchMove}
+        onMouseMove={handleBoardMouseMove}
+      >
         {renderBoard()}
       </div>
+      {renderDragGhost()}
       <PromotionDialog
         isOpen={promotionPending !== null}
         pawnColor={promotionPending?.pawnColor || 'white'}
