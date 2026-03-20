@@ -99,15 +99,6 @@ export const GameInfo: React.FC<GameInfoProps> = ({
         </div>
       )}
 
-      {!gameStatus.isGameOver && drawDetails.length > 0 && (
-        <div className="draw-warning">
-          <div className="warning-title">Draw Conditions:</div>
-          {drawDetails.map((detail, idx) => (
-            <div key={idx} className="warning-item">{detail}</div>
-          ))}
-        </div>
-      )}
-
       {moves.length > 0 && (
         <PGNNavigator
           currentMoveIndex={currentMoveIndex}

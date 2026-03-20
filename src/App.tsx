@@ -42,7 +42,8 @@ function App() {
       for (let i = 1; i <= currentMoveIndex; i++) {
         if (i < moves.length) {
           try {
-            g.move(moves[i].san);
+            // Strip result notation (e.g., " ½-½", "#") before applying move
+            g.move(moves[i].san.split(' ')[0].replace('#', ''));
           } catch {
             break;
           }
@@ -53,7 +54,8 @@ function App() {
       for (let i = 0; i <= currentMoveIndex; i++) {
         if (i < moves.length) {
           try {
-            g.move(moves[i].san);
+            // Strip result notation (e.g., " ½-½", "#") before applying move
+            g.move(moves[i].san.split(' ')[0].replace('#', ''));
           } catch {
             break;
           }
