@@ -102,25 +102,18 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
     setPromotionPending(null);
   };
 
-  const handlePieceDragStart = (e: React.DragEvent<HTMLDivElement>, square: string) => {
-    if (isDisabled) {
-      e.preventDefault();
-      return;
-    }
-
+  const handlePieceMouseDown = (e: React.MouseEvent<HTMLImageElement>, square: string) => {
+    if (isDisabled) return;
+    
     const piece = game.get(square as any);
     
-    if (!piece) {
-      e.preventDefault();
-      return;
-    }
+    if (!piece) return;
 
     // Only allow dragging pieces of the current turn color
     const isWhitePiece = piece.color === 'w';
     const isWhiteTurn = game.turn() === 'w';
 
     if (isWhitePiece !== isWhiteTurn) {
-      e.preventDefault();
       return;
     }
 
@@ -133,44 +126,77 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
       piece: piece.type,
       pieceColor: piece.color,
       cursorX: e.clientX,
-      cursorY: e.clientY 
+      cursorY: e.clientY
     });
     setLegalMoves(legalSquares);
-
-    e.dataTransfer.effectAllowed = 'move';
-    // Create a transparent drag image to hide the default browser drag image
-    const emptyImage = new Image();
-    e.dataTransfer.setDragImage(emptyImage, 0, 0);
   };
 
-  const handleSquareDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    
-    // Update drag state with current cursor position
-    setDragState(prev => ({ 
-      ...prev, 
-      cursorX: e.clientX, 
-      cursorY: e.clientY 
-    }));
-  };
-
-  const handleSquareDrop = (e: React.DragEvent<HTMLDivElement>, toSquare: string) => {
-    e.preventDefault();
-
+  const handleBoardMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!dragState.fromSquare) return;
 
-    // Check if this move would trigger a promotion
-    if (isPromotionMove(dragState.fromSquare, toSquare)) {
-      const piece = game.get(dragState.fromSquare as any);
-      const pawnColor = piece?.color === 'w' ? 'white' : 'black';
-      setPromotionPending({ fromSquare: dragState.fromSquare, toSquare, pawnColor });
+    const element = document.elementFromPoint(e.clientX, e.clientY);
+    
+    // Find the square element
+    let squareElement = element as HTMLElement | null;
+    while (squareElement && !squareElement.classList.contains('square')) {
+      squareElement = squareElement.parentElement;
+    }
+
+    if (!squareElement) {
       setDragState({ fromSquare: null, piece: null });
       setLegalMoves([]);
       return;
     }
 
-    executeMove(dragState.fromSquare, toSquare);
+    // Find the square index from the board
+    const board = squareElement.closest('.board') as HTMLElement;
+    if (!board) {
+      setDragState({ fromSquare: null, piece: null });
+      setLegalMoves([]);
+      return;
+    }
+
+    const squares = Array.from(board.querySelectorAll('.square'));
+    const squareIndex = squares.indexOf(squareElement);
+    
+    if (squareIndex === -1) {
+      setDragState({ fromSquare: null, piece: null });
+      setLegalMoves([]);
+      return;
+    }
+
+    // Convert index to square notation (board is 8x8, 0-63)
+    const isBlackPerspective = playerColor === 'black';
+    let rank: number;
+    let file: number;
+    
+    if (isBlackPerspective) {
+      // From black's perspective: index 0 is a8, index 1 is b8, etc.
+      rank = Math.floor(squareIndex / 8);
+      file = 7 - (squareIndex % 8);
+    } else {
+      // From white's perspective: index 0 is a1, index 1 is b1, etc.
+      rank = 7 - Math.floor(squareIndex / 8);
+      file = squareIndex % 8;
+    }
+    const toSquare = String.fromCharCode(97 + file) + (rank + 1);
+
+    if (legalMoves.includes(toSquare)) {
+      // Check if this move would trigger a promotion
+      if (isPromotionMove(dragState.fromSquare, toSquare)) {
+        const piece = game.get(dragState.fromSquare as any);
+        const pawnColor = piece?.color === 'w' ? 'white' : 'black';
+        setPromotionPending({ fromSquare: dragState.fromSquare, toSquare, pawnColor });
+        setDragState({ fromSquare: null, piece: null });
+        setLegalMoves([]);
+        return;
+      }
+
+      executeMove(dragState.fromSquare, toSquare);
+    } else {
+      setDragState({ fromSquare: null, piece: null });
+      setLegalMoves([]);
+    }
   };
 
   const handleBoardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -181,10 +207,6 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
         cursorY: e.clientY
       }));
     }
-  };
-
-  const handleSquareDragLeave = () => {
-    // Optional: Add visual feedback
   };
 
   const handleSquareTouchStart = (square: string) => {
@@ -394,18 +416,15 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
             className={`square ${squareColor} ${isFromSquare ? 'dragging-from' : ''} ${
               isLegalMove ? 'legal-move' : ''
             }`}
-            onDragOver={handleSquareDragOver}
-            onDrop={(e) => handleSquareDrop(e, square)}
-            onDragLeave={handleSquareDragLeave}
           >
             {piece && (
               <img
                 className={`piece ${piece.color === 'w' ? 'white' : 'black'} ${isFromSquare ? 'dragging' : ''}`}
                 src={getPieceImage(piece.type, piece.color)}
                 alt={`${piece.color === 'w' ? 'white' : 'black'} ${piece.type}`}
-                draggable
-                onDragStart={(e) => handlePieceDragStart(e, square)}
+                onMouseDown={(e) => handlePieceMouseDown(e, square)}
                 onTouchStart={(e) => handlePieceTouchStart(e, square)}
+                style={{ cursor: 'grab', userSelect: 'none' }}
               />
             )}
           </div>
@@ -449,6 +468,13 @@ export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove
         onTouchEnd={handleBoardTouchEnd}
         onTouchMove={handleBoardTouchMove}
         onMouseMove={handleBoardMouseMove}
+        onMouseUp={handleBoardMouseUp}
+        onMouseLeave={() => {
+          if (dragState.fromSquare) {
+            setDragState({ fromSquare: null, piece: null });
+            setLegalMoves([]);
+          }
+        }}
       >
         {renderBoard()}
       </div>
