@@ -32,12 +32,18 @@ interface ChessboardProps {
   onMove: (moveDescription: string) => void;
   chessboardSize?: number;
   playerColor?: 'white' | 'black';
+  gameResetSignal: number;
 }
 
-export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove, chessboardSize, playerColor = 'white' }) => {
+export const Chessboard: React.FC<ChessboardProps> = ({ game, isDisabled, onMove, chessboardSize, playerColor = 'white', gameResetSignal }) => {
   const [dragState, setDragState] = React.useState<DragState>({ fromSquare: null, piece: null });
   const [legalMoves, setLegalMoves] = React.useState<string[]>([]);
   const [promotionPending, setPromotionPending] = React.useState<{ fromSquare: string; toSquare: string; pawnColor: 'white' | 'black' } | null>(null);
+
+  // Close promotion dialog when game is reset
+  React.useEffect(() => {
+    setPromotionPending(null);
+  }, [gameResetSignal]);
 
   const isPromotionMove = (fromSquare: string, toSquare: string): boolean => {
     const piece = game.get(fromSquare as any);

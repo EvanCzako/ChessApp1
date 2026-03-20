@@ -21,6 +21,7 @@ function App() {
   const [difficulty, setDifficulty] = useState<Difficulty>('9');
   const [playerColor, setPlayerColor] = useState<PlayerColor>('white');
   const [chessboardSize, setChessboardSize] = useState<number | undefined>();
+  const [gameResetSignal, setGameResetSignal] = useState(0);
   const mainContentRef = useRef<HTMLDivElement>(null);
 
   // Reconstruct game at current position
@@ -67,14 +68,15 @@ function App() {
   useEffect(() => {
     // Only make computer move if:
     // 1. We're at the latest move
-    // 2. At least one move has been made (currentMoveIndex >= 0)
+    // 2. Not in a pseudo-move state (loaded FEN position)
     // 3. It's the computer's turn
     // 4. We're not already thinking
     const computerColor = playerColor === 'white' ? 'b' : 'w';
+    const isPseudoMoveState = moves.length > 0 && moves[0].san.startsWith('(') && currentMoveIndex === 0;
     
     if (
       currentMoveIndex === moves.length - 1 &&
-      currentMoveIndex >= 0 &&
+      !isPseudoMoveState &&
       gameAtPosition.turn() === computerColor &&
       !isComputerThinking
     ) {
@@ -197,6 +199,7 @@ function App() {
     setMoves([]);
     setCurrentMoveIndex(-1);
     setIsComputerThinking(false);
+    setGameResetSignal((prev) => prev + 1);
   };
 
   const handleLoadPawnPromotion = () => {
@@ -211,6 +214,7 @@ function App() {
     }]);
     setCurrentMoveIndex(0);
     setIsComputerThinking(false);
+    setGameResetSignal((prev) => prev + 1);
   };
 
   const handleDifficultyChange = (newDifficulty: Difficulty) => {
@@ -224,6 +228,7 @@ function App() {
     setMoves([]);
     setCurrentMoveIndex(-1);
     setIsComputerThinking(false);
+    setGameResetSignal((prev) => prev + 1);
   };
 
   return (
@@ -235,6 +240,7 @@ function App() {
           onMove={handleMove}
           chessboardSize={chessboardSize}
           playerColor={playerColor}
+          gameResetSignal={gameResetSignal}
         />
         <GameInfo
           currentMoveIndex={currentMoveIndex}
